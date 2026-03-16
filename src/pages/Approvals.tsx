@@ -34,7 +34,7 @@ export default function Approvals() {
           task:tasks(*)
         `)
         .eq('status', 'pending')
-        .order('created_at', { ascending: false });
+        .order('id', { ascending: false });
 
       if (error) throw error;
       setSubmissions(data || []);
@@ -193,7 +193,7 @@ export default function Approvals() {
                       ${sub.amount?.toFixed(2) || '0.00'}
                     </TableCell>
                     <TableCell className="text-slate-500">
-                      {new Date(sub.created_at).toLocaleString()}
+                      {new Date((sub as any).created_at || (sub as any).submitted_at || Date.now()).toLocaleString()}
                     </TableCell>
                     <TableCell>
                       {sub.proof_url?.startsWith('http') ? (

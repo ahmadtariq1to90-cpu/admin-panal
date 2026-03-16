@@ -38,7 +38,7 @@ export default function Dashboard() {
         supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('task_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('withdrawals').select('amount').eq('status', 'approved'),
-        supabase.from('task_submissions').select('id, created_at, task:tasks(task_name), user:users(first_name, last_name)').order('created_at', { ascending: false }).limit(5)
+        supabase.from('task_submissions').select('*, task:tasks(task_name), user:users(first_name, last_name)').order('id', { ascending: false }).limit(5)
       ]);
 
       const totalPayouts = payoutsRes.data?.reduce((sum, w) => sum + (w.amount || 0), 0) || 0;
@@ -56,7 +56,7 @@ export default function Dashboard() {
         user: sub.user ? `${sub.user.first_name || ''} ${sub.user.last_name || ''}`.trim() : 'Unknown User',
         action: 'completed task',
         target: sub.task?.task_name || 'Unknown Task',
-        time: new Date(sub.created_at).toLocaleString()
+        time: new Date(sub.created_at || sub.submitted_at || Date.now()).toLocaleString()
       }));
       setRecentActivity(activity);
 

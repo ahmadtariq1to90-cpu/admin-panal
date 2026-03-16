@@ -34,7 +34,7 @@ export default function Tasks() {
     setLoading(true);
     try {
       const [tasksRes, categoriesRes] = await Promise.all([
-        supabase.from('tasks').select('*, category:task_categories(*)').order('created_at', { ascending: false }),
+        supabase.from('tasks').select('*, category:task_categories(*)').order('id', { ascending: false }),
         supabase.from('task_categories').select('*').order('name', { ascending: true })
       ]);
       

@@ -33,7 +33,7 @@ export default function Withdrawals() {
           user:users(*)
         `)
         .eq('status', 'pending')
-        .order('created_at', { ascending: false });
+        .order('id', { ascending: false });
 
       if (error) throw error;
       setWithdrawals(data || []);
@@ -208,7 +208,7 @@ export default function Withdrawals() {
                       </span>
                     </TableCell>
                     <TableCell className="text-slate-500">
-                      {new Date(w.created_at).toLocaleString()}
+                      {new Date((w as any).created_at || Date.now()).toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right">
                       <Button size="sm" onClick={() => handleReview(w)}>

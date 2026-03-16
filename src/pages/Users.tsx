@@ -37,7 +37,7 @@ export default function Users() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('users').select('*').order('created_at', { ascending: false });
+      const { data, error } = await supabase.from('users').select('*').order('id', { ascending: false });
       if (error) throw error;
       setUsers(data || []);
     } catch (error: any) {
@@ -52,8 +52,8 @@ export default function Users() {
     setHistoryLoading(true);
     try {
       const [tasksRes, payoutsRes] = await Promise.all([
-        supabase.from('task_submissions').select('*, task:tasks(*)').eq('user_id', userId).order('created_at', { ascending: false }),
-        supabase.from('withdrawals').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+        supabase.from('task_submissions').select('*, task:tasks(*)').eq('user_id', userId).order('id', { ascending: false }),
+        supabase.from('withdrawals').select('*').eq('user_id', userId).order('id', { ascending: false })
       ]);
       
       if (tasksRes.error) throw tasksRes.error;
@@ -426,7 +426,7 @@ export default function Users() {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-emerald-600">${th.amount.toFixed(2)}</TableCell>
-                            <TableCell className="text-slate-500 text-sm">{new Date(th.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-slate-500 text-sm">{new Date((th as any).created_at || (th as any).submitted_at || Date.now()).toLocaleDateString()}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -464,7 +464,7 @@ export default function Users() {
                                 {ph.status}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-slate-500 text-sm">{new Date(ph.created_at).toLocaleDateString()}</TableCell>
+                            <TableCell className="text-slate-500 text-sm">{new Date((ph as any).created_at || Date.now()).toLocaleDateString()}</TableCell>
                           </TableRow>
                         ))}
                       </TableBody>

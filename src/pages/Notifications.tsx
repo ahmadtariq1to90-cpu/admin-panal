@@ -31,7 +31,7 @@ export default function Notifications() {
           *,
           user:users(first_name, last_name, email)
         `)
-        .order('created_at', { ascending: false })
+        .order('id', { ascending: false })
         .limit(20);
 
       if (error) throw error;
