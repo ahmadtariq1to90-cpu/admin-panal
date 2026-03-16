@@ -86,7 +86,8 @@ export default function Users() {
       const { error } = await supabase
         .from('users')
         .update({
-          full_name: editForm.full_name,
+          first_name: editForm.first_name,
+          last_name: editForm.last_name,
           email: editForm.email,
           phone_number: editForm.phone_number,
           birthday: editForm.birthday,
@@ -148,7 +149,7 @@ export default function Users() {
   };
 
   const filteredUsers = users.filter(user => 
-    user.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -195,14 +196,14 @@ export default function Users() {
                     <TableCell>
                       <div className="flex items-center gap-3">
                         {user.profile_image ? (
-                          <img src={user.profile_image} alt={user.full_name} className="w-8 h-8 rounded-full object-cover" />
+                          <img src={user.profile_image} alt={`${user.first_name || ''} ${user.last_name || ''}`} className="w-8 h-8 rounded-full object-cover" />
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-medium text-xs">
-                            {user.full_name?.charAt(0) || 'U'}
+                            {user.first_name?.charAt(0) || 'U'}
                           </div>
                         )}
                         <div>
-                          <p className="font-medium text-slate-900 dark:text-slate-100">{user.full_name}</p>
+                          <p className="font-medium text-slate-900 dark:text-slate-100">{user.first_name} {user.last_name}</p>
                           <p className="text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
                         </div>
                       </div>
@@ -254,7 +255,7 @@ export default function Users() {
       <Modal 
         isOpen={isUserModalOpen} 
         onClose={() => setIsUserModalOpen(false)}
-        title={`User Details - ${selectedUser?.full_name}`}
+        title={`User Details - ${selectedUser?.first_name || ''} ${selectedUser?.last_name || ''}`}
         className="max-w-4xl"
       >
         <div className="flex flex-col md:flex-row gap-6 h-[600px]">
@@ -305,7 +306,7 @@ export default function Users() {
                     <img src={editForm.profile_image} alt="Profile" className="w-16 h-16 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
                   ) : (
                     <div className="w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-medium text-xl">
-                      {editForm.full_name?.charAt(0) || 'U'}
+                      {editForm.first_name?.charAt(0) || 'U'}
                     </div>
                   )}
                   <div className="space-y-1">
@@ -322,8 +323,12 @@ export default function Users() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Full Name</label>
-                    <Input value={editForm.full_name || ''} onChange={e => setEditForm({...editForm, full_name: e.target.value})} />
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">First Name</label>
+                    <Input value={editForm.first_name || ''} onChange={e => setEditForm({...editForm, first_name: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Last Name</label>
+                    <Input value={editForm.last_name || ''} onChange={e => setEditForm({...editForm, last_name: e.target.value})} />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Email</label>

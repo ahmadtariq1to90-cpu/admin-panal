@@ -47,7 +47,7 @@ export default function Approvals() {
   };
 
   const filteredSubmissions = submissions.filter(sub => 
-    sub.user?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    `${sub.user?.first_name || ''} ${sub.user?.last_name || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     sub.task?.task_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -182,7 +182,7 @@ export default function Approvals() {
                   <TableRow key={sub.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium text-slate-900 dark:text-slate-100">{sub.user?.full_name}</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{sub.user?.first_name} {sub.user?.last_name}</p>
                         <p className="text-xs text-slate-500">{sub.user?.email}</p>
                       </div>
                     </TableCell>
@@ -230,7 +230,7 @@ export default function Approvals() {
             <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
               <div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">User</p>
-                <p className="font-medium text-slate-900 dark:text-white">{selectedSubmission.user?.full_name}</p>
+                <p className="font-medium text-slate-900 dark:text-white">{selectedSubmission.user?.first_name} {selectedSubmission.user?.last_name}</p>
                 <p className="text-sm text-slate-500">{selectedSubmission.user?.email}</p>
               </div>
               <div>

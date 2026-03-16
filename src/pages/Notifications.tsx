@@ -29,7 +29,7 @@ export default function Notifications() {
         .from('notifications')
         .select(`
           *,
-          user:users(full_name, email)
+          user:users(first_name, last_name, email)
         `)
         .order('created_at', { ascending: false })
         .limit(20);
@@ -237,7 +237,7 @@ export default function Notifications() {
                       </TableCell>
                       <TableCell>
                         <Badge variant={item.user ? 'secondary' : 'default'}>
-                          {item.user ? item.user.full_name || item.user.email : 'Unknown User'}
+                          {item.user ? `${item.user.first_name || ''} ${item.user.last_name || ''}`.trim() || item.user.email : 'Unknown User'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-slate-500 text-sm">

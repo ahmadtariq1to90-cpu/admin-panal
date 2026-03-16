@@ -46,7 +46,7 @@ export default function Withdrawals() {
   };
 
   const filteredWithdrawals = withdrawals.filter(w => 
-    w.user?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    `${w.user?.first_name || ''} ${w.user?.last_name || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
     w.method?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -190,7 +190,7 @@ export default function Withdrawals() {
                   <TableRow key={w.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium text-slate-900 dark:text-slate-100">{w.user?.full_name}</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{w.user?.first_name} {w.user?.last_name}</p>
                         <p className="text-xs text-slate-500">{w.user?.email}</p>
                       </div>
                     </TableCell>
@@ -246,7 +246,7 @@ export default function Withdrawals() {
             <div className="space-y-4">
               <div className="flex justify-between items-center py-3 border-b border-slate-200 dark:border-slate-800">
                 <span className="text-slate-500 dark:text-slate-400 font-medium">User</span>
-                <span className="font-medium text-slate-900 dark:text-white">{selectedWithdrawal.user?.full_name}</span>
+                <span className="font-medium text-slate-900 dark:text-white">{selectedWithdrawal.user?.first_name} {selectedWithdrawal.user?.last_name}</span>
               </div>
               <div className="flex justify-between items-center py-3 border-b border-slate-200 dark:border-slate-800">
                 <span className="text-slate-500 dark:text-slate-400 font-medium">Payment Method</span>
