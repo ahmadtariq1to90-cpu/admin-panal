@@ -43,8 +43,8 @@ export default function Approvals() {
         .from('task_submissions')
         .select(`
           *,
-          user:users(*),
-          task:tasks(*)
+          user:userrrr(*),
+          task:tasks table(*)
         `)
         .eq('status', 'pending')
         .order('id', { ascending: false });
@@ -60,8 +60,8 @@ export default function Approvals() {
   };
 
   const filteredSubmissions = submissions.filter(sub => 
-    `${sub.user?.first_name || ''} ${sub.user?.last_name || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sub.task?.task_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    `${sub.user?.name || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    sub.task?.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleReview = (sub: TaskSubmission) => {
@@ -87,7 +87,7 @@ export default function Approvals() {
         const newTasksCompleted = (selectedSubmission.user.total_tasks_completed || 0) + 1;
         
         const { error: userError } = await supabase
-          .from('users')
+          .from('userrrr')
           .update({ 
             balance: newBalance,
             total_tasks_completed: newTasksCompleted
@@ -101,7 +101,7 @@ export default function Approvals() {
       await supabase.from('notifications').insert({
         user_id: selectedSubmission.user_id,
         title: 'Task Approved',
-        message: `Your submission for "${selectedSubmission.task?.task_name}" was approved. You earned $${selectedSubmission.amount.toFixed(2)}!`,
+        message: `Your submission for "${selectedSubmission.task?.title}" was approved. You earned $${selectedSubmission.amount.toFixed(2)}!`,
         is_read: false
       });
 
@@ -131,7 +131,7 @@ export default function Approvals() {
       await supabase.from('notifications').insert({
         user_id: selectedSubmission.user_id,
         title: 'Task Rejected',
-        message: `Your submission for "${selectedSubmission.task?.task_name}" was rejected. ${rejectReason ? `Reason: ${rejectReason}` : ''}`,
+        message: `Your submission for "${selectedSubmission.task?.title}" was rejected. ${rejectReason ? `Reason: ${rejectReason}` : ''}`,
         is_read: false
       });
 
@@ -196,12 +196,12 @@ export default function Approvals() {
                   <TableRow key={sub.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium text-slate-900 dark:text-slate-100">{sub.user?.first_name} {sub.user?.last_name}</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{sub.user?.name}</p>
                         <p className="text-xs text-slate-500">{sub.user?.email}</p>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <p className="font-medium text-slate-900 dark:text-slate-100">{sub.task?.task_name}</p>
+                      <p className="font-medium text-slate-900 dark:text-slate-100">{sub.task?.title}</p>
                     </TableCell>
                     <TableCell className="font-medium text-emerald-600 dark:text-emerald-400">
                       ${sub.amount?.toFixed(2) || '0.00'}
@@ -246,12 +246,12 @@ export default function Approvals() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
               <div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">User</p>
-                <p className="font-medium text-slate-900 dark:text-white">{selectedSubmission.user?.first_name} {selectedSubmission.user?.last_name}</p>
+                <p className="font-medium text-slate-900 dark:text-white">{selectedSubmission.user?.name}</p>
                 <p className="text-sm text-slate-500">{selectedSubmission.user?.email}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">Task</p>
-                <p className="font-medium text-slate-900 dark:text-white">{selectedSubmission.task?.task_name}</p>
+                <p className="font-medium text-slate-900 dark:text-white">{selectedSubmission.task?.title}</p>
                 <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">Reward: ${(selectedSubmission.amount || 0).toFixed(2)} (Rs {((selectedSubmission.amount || 0) * pkrRate).toFixed(0)})</p>
               </div>
             </div>

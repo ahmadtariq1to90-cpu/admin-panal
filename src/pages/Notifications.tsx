@@ -29,7 +29,7 @@ export default function Notifications() {
         .from('notifications')
         .select(`
           *,
-          user:users(first_name, last_name, email)
+          user:userrrr(name, email)
         `)
         .order('id', { ascending: false })
         .limit(20);
@@ -53,7 +53,7 @@ export default function Notifications() {
         let targetUserId = userId;
         if (userId.includes('@')) {
           const { data: userData, error: userError } = await supabase
-            .from('users')
+            .from('userrrr')
             .select('id')
             .eq('email', userId)
             .single();
@@ -77,7 +77,7 @@ export default function Notifications() {
         // Send to all users
         // Note: In a production app with many users, this should be done via a backend edge function
         // to avoid timeout and payload limits.
-        const { data: users, error: usersError } = await supabase.from('users').select('id');
+        const { data: users, error: usersError } = await supabase.from('userrrr').select('id');
         if (usersError) throw usersError;
         
         const notifications = users.map(u => ({
@@ -238,7 +238,7 @@ export default function Notifications() {
                       </TableCell>
                       <TableCell>
                         <Badge variant={item.user ? 'secondary' : 'default'}>
-                          {item.user ? `${item.user.first_name || ''} ${item.user.last_name || ''}`.trim() || item.user.email : 'Unknown User'}
+                          {item.user ? `${item.user.name || ''}`.trim() || item.user.email : 'Unknown User'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-slate-500 text-sm">

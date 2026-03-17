@@ -58,12 +58,12 @@ export default function Tasks() {
       }
 
       // Try to fetch tasks with category join
-      let tasksRes = await supabase.from('tasks').select('*, category:task_categories(*)').order('id', { ascending: false });
+      let tasksRes = await supabase.from('tasks table').select('*, category:task_categories(*)').order('id', { ascending: false });
       
       // If join fails (likely due to missing category_id column or table), fetch without join
       if (tasksRes.error) {
         console.warn('Failed to fetch tasks with categories, falling back to simple fetch:', tasksRes.error);
-        tasksRes = await supabase.from('tasks').select('*').order('id', { ascending: false });
+        tasksRes = await supabase.from('tasks table').select('*').order('id', { ascending: false });
       }
       
       if (tasksRes.error) throw tasksRes.error;
@@ -82,47 +82,47 @@ export default function Tasks() {
       setEditingTask(task);
     } else {
       setEditingTask({
-        task_name: '',
+        title: '',
         description: '',
-        reward_amount: 0.1,
+        reward: 0.1,
         instructions: '',
         status: 'active',
         category_id: categories.length > 0 ? categories[0].id : undefined,
         video_url: '',
-        ad_code: ''
+        prroof_required: true
       });
     }
     setIsTaskModalOpen(true);
   };
 
   const handleSaveTask = async () => {
-    if (!editingTask?.task_name || !editingTask?.reward_amount) return;
+    if (!editingTask?.title || !editingTask?.reward) return;
     setIsSaving(true);
     try {
       if (editingTask.id) {
         // Update
-        const { error } = await supabase.from('tasks').update({
-          task_name: editingTask.task_name,
+        const { error } = await supabase.from('tasks table').update({
+          title: editingTask.title,
           description: editingTask.description,
-          reward_amount: editingTask.reward_amount,
+          reward: editingTask.reward,
           instructions: editingTask.instructions,
           status: editingTask.status,
           category_id: editingTask.category_id,
           video_url: editingTask.video_url,
-          ad_code: editingTask.ad_code
+          prroof_required: editingTask.prroof_required
         }).eq('id', editingTask.id);
         if (error) throw error;
       } else {
         // Insert
-        const { error } = await supabase.from('tasks').insert([{
-          task_name: editingTask.task_name,
+        const { error } = await supabase.from('tasks table').insert([{
+          title: editingTask.title,
           description: editingTask.description,
-          reward_amount: editingTask.reward_amount,
+          reward: editingTask.reward,
           instructions: editingTask.instructions,
           status: editingTask.status || 'active',
           category_id: editingTask.category_id,
           video_url: editingTask.video_url,
-          ad_code: editingTask.ad_code
+          prroof_required: editingTask.prroof_required
         }]);
         if (error) throw error;
       }
@@ -158,7 +158,7 @@ export default function Tasks() {
   const toggleTaskStatus = async (task: Task) => {
     const newStatus = task.status === 'active' ? 'paused' : 'active';
     try {
-      const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', task.id);
+      const { error } = await supabase.from('tasks table').update({ status: newStatus }).eq('id', task.id);
       if (error) throw error;
       await fetchData();
     } catch (error) {
@@ -167,7 +167,7 @@ export default function Tasks() {
   };
 
   const filteredTasks = tasks.filter(task => 
-    task.task_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    task.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -222,7 +222,7 @@ export default function Tasks() {
                   <TableRow key={task.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium text-slate-900 dark:text-slate-100">{task.task_name}</p>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{task.title}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[250px]">{task.description}</p>
                       </div>
                     </TableCell>
@@ -230,8 +230,8 @@ export default function Tasks() {
                       <Badge variant="outline">{task.category?.name || 'Uncategorized'}</Badge>
                     </TableCell>
                     <TableCell className="font-medium text-emerald-600 dark:text-emerald-400">
-                      ${(task.reward_amount || 0).toFixed(2)}
-                      <div className="text-[10px] text-slate-500 font-normal">Rs {((task.reward_amount || 0) * pkrRate).toFixed(0)}</div>
+                      ${(task.reward || 0).toFixed(2)}
+                      <div className="text-[10px] text-slate-500 font-normal">Rs {((task.reward || 0) * pkrRate).toFixed(0)}</div>
                     </TableCell>
                     <TableCell>
                       <Badge variant={
@@ -244,7 +244,7 @@ export default function Tasks() {
                     <TableCell>
                       <div className="flex gap-2">
                         {task.video_url && <Video className="w-4 h-4 text-indigo-500" title="Has Video" />}
-                        {task.ad_code && <Code className="w-4 h-4 text-amber-500" title="Has Ad Code" />}
+                        {task.prroof_required && <Code className="w-4 h-4 text-amber-500" title="Proof Required" />}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -281,7 +281,7 @@ export default function Tasks() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2 col-span-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Task Title</label>
-              <Input placeholder="e.g., Watch YouTube Video" value={editingTask?.task_name || ''} onChange={e => setEditingTask({...editingTask, task_name: e.target.value})} />
+              <Input placeholder="e.g., Watch YouTube Video" value={editingTask?.title || ''} onChange={e => setEditingTask({...editingTask, title: e.target.value})} />
             </div>
             
             <div className="space-y-2">
@@ -318,8 +318,8 @@ export default function Tasks() {
 
             <div className="space-y-2 col-span-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Reward Amount ($)</label>
-              <Input type="number" step="0.01" placeholder="0.50" value={editingTask?.reward_amount || ''} onChange={e => setEditingTask({...editingTask, reward_amount: parseFloat(e.target.value)})} />
-              <p className="text-[10px] text-slate-500">Rs {((editingTask?.reward_amount || 0) * pkrRate).toFixed(0)}</p>
+              <Input type="number" step="0.01" placeholder="0.50" value={editingTask?.reward || ''} onChange={e => setEditingTask({...editingTask, reward: parseFloat(e.target.value)})} />
+              <p className="text-[10px] text-slate-500">Rs {((editingTask?.reward || 0) * pkrRate).toFixed(0)}</p>
             </div>
 
             <div className="space-y-2 col-span-2">
@@ -340,17 +340,17 @@ export default function Tasks() {
               <p className="text-xs text-slate-500">If left blank, the video option will not show in the app.</p>
             </div>
 
-            <div className="space-y-2 col-span-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300 flex items-center gap-2">
-                <Code className="w-4 h-4" /> Ad Code (Optional - e.g., Adstera)
-              </label>
-              <textarea 
-                className="flex min-h-[80px] font-mono w-full rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3 py-2 text-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                placeholder="<!-- Ad Code Here -->"
-                value={editingTask?.ad_code || ''}
-                onChange={e => setEditingTask({...editingTask, ad_code: e.target.value})}
+            <div className="space-y-2 col-span-2 flex items-center gap-2">
+              <input 
+                type="checkbox"
+                id="proofRequired"
+                checked={editingTask?.prroof_required || false}
+                onChange={e => setEditingTask({...editingTask, prroof_required: e.target.checked})}
+                className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
               />
-              <p className="text-xs text-slate-500">HTML/JS code for ads. Will be injected if provided.</p>
+              <label htmlFor="proofRequired" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Proof Required (User must submit screenshot/video)
+              </label>
             </div>
           </div>
 

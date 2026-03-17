@@ -31,8 +31,8 @@ export default function Dashboard() {
 
     // Set up real-time subscriptions
     const usersSubscription = supabase
-      .channel('public:users')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+      .channel('public:userrrr')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'userrrr' }, () => {
         fetchDashboardData();
       })
       .subscribe();
@@ -67,12 +67,12 @@ export default function Dashboard() {
 
       // Fetch counts
       const [usersRes, pendingWithdrawalsRes, pendingApprovalsRes, payoutsRes, recentSubmissionsRes, recentUsersRes, recentTasksRes] = await Promise.all([
-        supabase.from('users').select('*', { count: 'exact', head: true }),
+        supabase.from('userrrr').select('*', { count: 'exact', head: true }),
         supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('task_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('withdrawals').select('amount').eq('status', 'approved'),
-        supabase.from('task_submissions').select('*, task:tasks(task_name), user:users(first_name, last_name)').order('id', { ascending: false }).limit(5),
-        supabase.from('users').select('created_at').gte('created_at', isoDate),
+        supabase.from('task_submissions').select('*, task:tasks table(title), user:userrrr(name)').order('id', { ascending: false }).limit(5),
+        supabase.from('userrrr').select('created_at').gte('created_at', isoDate),
         supabase.from('task_submissions').select('created_at').gte('created_at', isoDate).eq('status', 'approved')
       ]);
 
@@ -88,9 +88,9 @@ export default function Dashboard() {
       // Format recent activity
       const activity = (recentSubmissionsRes.data || []).map((sub: any) => ({
         id: sub.id,
-        user: sub.user ? `${sub.user.first_name || ''} ${sub.user.last_name || ''}`.trim() : 'Unknown User',
+        user: sub.user ? `${sub.user.name || ''}`.trim() : 'Unknown User',
         action: 'completed task',
-        target: sub.task?.task_name || 'Unknown Task',
+        target: sub.task?.title || 'Unknown Task',
         time: new Date(sub.created_at || sub.submitted_at || Date.now()).toLocaleString()
       }));
       setRecentActivity(activity);

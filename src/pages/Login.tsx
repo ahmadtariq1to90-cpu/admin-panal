@@ -35,7 +35,7 @@ export default function Login() {
 
       // Check if user is admin
       const { data: userData, error: userError } = await supabase
-        .from('users')
+        .from('userrrr')
         .select('role')
         .eq('id', data.user.id)
         .single();

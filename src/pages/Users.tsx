@@ -50,7 +50,7 @@ export default function Users() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('users').select('*').order('id', { ascending: false });
+      const { data, error } = await supabase.from('userrrr').select('*').order('id', { ascending: false });
       if (error) throw error;
       setUsers(data || []);
     } catch (error: any) {
@@ -65,7 +65,7 @@ export default function Users() {
     setHistoryLoading(true);
     try {
       const [tasksRes, payoutsRes] = await Promise.all([
-        supabase.from('task_submissions').select('*, task:tasks(*)').eq('user_id', userId).order('id', { ascending: false }),
+        supabase.from('task_submissions').select('*, task:tasks table(*)').eq('user_id', userId).order('id', { ascending: false }),
         supabase.from('withdrawals').select('*').eq('user_id', userId).order('id', { ascending: false })
       ]);
       
@@ -97,19 +97,18 @@ export default function Users() {
     const toastId = toast.loading('Saving user details...');
     try {
       const { error } = await supabase
-        .from('users')
+        .from('userrrr')
         .update({
-          first_name: editForm.first_name,
-          last_name: editForm.last_name,
+          name: editForm.name,
           email: editForm.email,
-          phone_number: editForm.phone_number,
-          birthday: editForm.birthday,
+          phone: editForm.phone,
+          date_of_birth: editForm.date_of_birth,
           country: editForm.country,
           city: editForm.city,
           zip_code: editForm.zip_code,
           balance: editForm.balance,
           referral_earnings: editForm.referral_earnings,
-          profile_image: editForm.profile_image,
+          'profile-image': editForm['profile-image'],
         })
         .eq('id', selectedUser.id);
 
@@ -147,7 +146,7 @@ export default function Users() {
     const toastId = toast.loading(`${isBanned ? 'Unbanning' : 'Banning'} user...`);
     try {
       const { error } = await supabase
-        .from('users')
+        .from('userrrr')
         .update({ status: newStatus })
         .eq('id', user.id);
 
@@ -162,7 +161,7 @@ export default function Users() {
   };
 
   const filteredUsers = users.filter(user => 
-    `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    `${user.name || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -211,18 +210,18 @@ export default function Users() {
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        {user.profile_image ? (
-                          <img src={user.profile_image} alt={`${user.first_name || ''} ${user.last_name || ''}`} className="w-8 h-8 rounded-full object-cover" />
+                        {user['profile-image'] ? (
+                          <img src={user['profile-image']} alt={`${user.name || ''}`} className="w-8 h-8 rounded-full object-cover" />
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-medium text-xs">
-                            {user.first_name?.charAt(0) || 'U'}
+                            {user.name?.charAt(0) || 'U'}
                           </div>
                         )}
                         <div>
-                          <p className="font-medium text-slate-900 dark:text-slate-100">{user.first_name} {user.last_name}</p>
+                          <p className="font-medium text-slate-900 dark:text-slate-100">{user.name}</p>
                           <p className="text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
-                          {user.profile_image && (
-                            <a href={user.profile_image} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-500 hover:underline mt-0.5 block truncate max-w-[150px]">
+                          {user['profile-image'] && (
+                            <a href={user['profile-image']} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-500 hover:underline mt-0.5 block truncate max-w-[150px]">
                               View Image
                             </a>
                           )}
@@ -239,7 +238,7 @@ export default function Users() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-500">{user.birthday ? new Date(user.birthday).toLocaleDateString() : '-'}</TableCell>
+                    <TableCell className="text-slate-500">{user.date_of_birth ? new Date(user.date_of_birth).toLocaleDateString() : '-'}</TableCell>
                     <TableCell className="text-slate-500">{user.zip_code || '-'}</TableCell>
                     <TableCell className="font-medium text-emerald-600 dark:text-emerald-400">
                       ${(user.balance || 0).toFixed(2)}
@@ -283,7 +282,7 @@ export default function Users() {
       <Modal 
         isOpen={isUserModalOpen} 
         onClose={() => setIsUserModalOpen(false)}
-        title={`User Details - ${selectedUser?.first_name || ''} ${selectedUser?.last_name || ''}`}
+        title={`User Details - ${selectedUser?.name || ''}`}
         className="max-w-4xl"
       >
         <div className="flex flex-col md:flex-row gap-6 h-[600px]">
@@ -330,11 +329,11 @@ export default function Users() {
             {activeTab === 'profile' && (
               <div className="space-y-4">
                 <div className="flex items-center gap-4 mb-6">
-                  {editForm.profile_image ? (
-                    <img src={editForm.profile_image} alt="Profile" className="w-16 h-16 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
+                  {editForm['profile-image'] ? (
+                    <img src={editForm['profile-image']} alt="Profile" className="w-16 h-16 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
                   ) : (
                     <div className="w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-medium text-xl">
-                      {editForm.first_name?.charAt(0) || 'U'}
+                      {editForm.name?.charAt(0) || 'U'}
                     </div>
                   )}
                   <div className="space-y-1">
@@ -342,12 +341,12 @@ export default function Users() {
                     <div className="flex items-center gap-2">
                       <Input 
                         placeholder="https://example.com/image.jpg" 
-                        value={editForm.profile_image || ''} 
-                        onChange={e => setEditForm({...editForm, profile_image: e.target.value})} 
+                        value={editForm['profile-image'] || ''} 
+                        onChange={e => setEditForm({...editForm, 'profile-image': e.target.value})} 
                         className="w-full max-w-sm"
                       />
-                      {editForm.profile_image && (
-                        <a href={editForm.profile_image} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium shrink-0">
+                      {editForm['profile-image'] && (
+                        <a href={editForm['profile-image']} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium shrink-0">
                           View Link
                         </a>
                       )}
@@ -358,12 +357,8 @@ export default function Users() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">First Name</label>
-                    <Input value={editForm.first_name || ''} onChange={e => setEditForm({...editForm, first_name: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Last Name</label>
-                    <Input value={editForm.last_name || ''} onChange={e => setEditForm({...editForm, last_name: e.target.value})} />
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Full Name</label>
+                    <Input value={editForm.name || ''} onChange={e => setEditForm({...editForm, name: e.target.value})} />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Email</label>
@@ -371,11 +366,11 @@ export default function Users() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Phone Number</label>
-                    <Input value={editForm.phone_number || ''} onChange={e => setEditForm({...editForm, phone_number: e.target.value})} />
+                    <Input value={editForm.phone || ''} onChange={e => setEditForm({...editForm, phone: e.target.value})} />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Birthday</label>
-                    <Input type="date" value={editForm.birthday || ''} onChange={e => setEditForm({...editForm, birthday: e.target.value})} />
+                    <Input type="date" value={editForm.date_of_birth || ''} onChange={e => setEditForm({...editForm, date_of_birth: e.target.value})} />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Country</label>
@@ -464,7 +459,7 @@ export default function Users() {
                       <TableBody>
                         {taskHistory.map(th => (
                           <TableRow key={th.id}>
-                            <TableCell className="font-medium">{th.task?.task_name || 'Unknown Task'}</TableCell>
+                            <TableCell className="font-medium">{th.task?.title || 'Unknown Task'}</TableCell>
                             <TableCell>
                               <Badge variant={th.status === 'approved' ? 'success' : th.status === 'rejected' ? 'destructive' : 'warning'}>
                                 {th.status}
