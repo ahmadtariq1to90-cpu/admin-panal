@@ -204,6 +204,7 @@ export default function Notifications() {
             <CardTitle>Recent Notifications</CardTitle>
           </CardHeader>
           <CardContent className="p-0">
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -248,6 +249,7 @@ export default function Notifications() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </CardContent>
         </Card>
       </div>

@@ -33,18 +33,32 @@ export default function Tasks() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [tasksRes, categoriesRes] = await Promise.all([
-        supabase.from('tasks').select('*, category:task_categories(*)').order('id', { ascending: false }),
-        supabase.from('task_categories').select('*').order('name', { ascending: true })
-      ]);
+      // Try to fetch categories first
+      const categoriesRes = await supabase.from('task_categories').select('*').order('name', { ascending: true });
+      
+      let categoriesData = [];
+      if (!categoriesRes.error) {
+        categoriesData = categoriesRes.data || [];
+        setCategories(categoriesData);
+      } else {
+        console.warn('task_categories table might be missing:', categoriesRes.error);
+      }
+
+      // Try to fetch tasks with category join
+      let tasksRes = await supabase.from('tasks').select('*, category:task_categories(*)').order('id', { ascending: false });
+      
+      // If join fails (likely due to missing category_id column or table), fetch without join
+      if (tasksRes.error) {
+        console.warn('Failed to fetch tasks with categories, falling back to simple fetch:', tasksRes.error);
+        tasksRes = await supabase.from('tasks').select('*').order('id', { ascending: false });
+      }
       
       if (tasksRes.error) throw tasksRes.error;
-      if (categoriesRes.error) throw categoriesRes.error;
 
       setTasks(tasksRes.data || []);
-      setCategories(categoriesRes.data || []);
     } catch (error) {
       console.error('Error fetching tasks data:', error);
+      toast.error('Failed to load tasks. Please check database schema.');
     } finally {
       setLoading(false);
     }
@@ -160,7 +174,7 @@ export default function Tasks() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <CardTitle>All Tasks</CardTitle>
           <div className="w-72 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -173,6 +187,7 @@ export default function Tasks() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -237,6 +252,7 @@ export default function Tasks() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -248,7 +264,7 @@ export default function Tasks() {
         className="max-w-2xl"
       >
         <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-2 col-span-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Task Title</label>
               <Input placeholder="e.g., Watch YouTube Video" value={editingTask?.task_name || ''} onChange={e => setEditingTask({...editingTask, task_name: e.target.value})} />

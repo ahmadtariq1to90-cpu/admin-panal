@@ -160,7 +160,7 @@ export default function Users() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <CardTitle>All Users</CardTitle>
           <div className="w-72 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -173,11 +173,13 @@ export default function Users() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
+          <div className="overflow-x-auto">
+            <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Zip Code</TableHead>
                 <TableHead>Balance</TableHead>
                 <TableHead>Tasks</TableHead>
                 <TableHead>Total Withdrawn</TableHead>
@@ -187,9 +189,9 @@ export default function Users() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8">Loading users...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8">Loading users...</TableCell></TableRow>
               ) : filteredUsers.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8">No users found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={8} className="text-center py-8">No users found</TableCell></TableRow>
               ) : (
                 filteredUsers.map((user) => (
                   <TableRow key={user.id}>
@@ -205,6 +207,11 @@ export default function Users() {
                         <div>
                           <p className="font-medium text-slate-900 dark:text-slate-100">{user.first_name} {user.last_name}</p>
                           <p className="text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
+                          {user.profile_image && (
+                            <a href={user.profile_image} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-500 hover:underline mt-0.5 block truncate max-w-[150px]">
+                              View Image
+                            </a>
+                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -218,6 +225,7 @@ export default function Users() {
                         )}
                       </div>
                     </TableCell>
+                    <TableCell className="text-slate-500">{user.zip_code || '-'}</TableCell>
                     <TableCell className="font-medium text-emerald-600 dark:text-emerald-400">
                       ${(user.balance || 0).toFixed(2)}
                     </TableCell>
@@ -249,6 +257,7 @@ export default function Users() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -311,17 +320,24 @@ export default function Users() {
                   )}
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Profile Image URL</label>
-                    <Input 
-                      placeholder="https://example.com/image.jpg" 
-                      value={editForm.profile_image || ''} 
-                      onChange={e => setEditForm({...editForm, profile_image: e.target.value})} 
-                      className="w-full max-w-sm"
-                    />
+                    <div className="flex items-center gap-2">
+                      <Input 
+                        placeholder="https://example.com/image.jpg" 
+                        value={editForm.profile_image || ''} 
+                        onChange={e => setEditForm({...editForm, profile_image: e.target.value})} 
+                        className="w-full max-w-sm"
+                      />
+                      {editForm.profile_image && (
+                        <a href={editForm.profile_image} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium shrink-0">
+                          View Link
+                        </a>
+                      )}
+                    </div>
                     <p className="text-xs text-slate-500">Enter a valid image URL to update the profile picture.</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">First Name</label>
                     <Input value={editForm.first_name || ''} onChange={e => setEditForm({...editForm, first_name: e.target.value})} />
@@ -355,6 +371,14 @@ export default function Users() {
                     <Input value={editForm.zip_code || ''} onChange={e => setEditForm({...editForm, zip_code: e.target.value})} />
                   </div>
                   <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Balance ($)</label>
+                    <Input type="number" step="0.01" value={editForm.balance || 0} onChange={e => setEditForm({...editForm, balance: parseFloat(e.target.value)})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Referral Earnings ($)</label>
+                    <Input type="number" step="0.01" value={editForm.referral_earnings || 0} onChange={e => setEditForm({...editForm, referral_earnings: parseFloat(e.target.value)})} />
+                  </div>
+                  <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">New Password (Leave blank to keep current)</label>
                     <Input type="password" placeholder="••••••••" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
                   </div>
@@ -371,7 +395,7 @@ export default function Users() {
 
             {activeTab === 'stats' && (
               <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                     <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Balance</p>
                     <div className="flex items-center gap-2 mt-2">
@@ -406,7 +430,7 @@ export default function Users() {
                 ) : taskHistory.length === 0 ? (
                   <p className="text-sm text-slate-500">No tasks completed yet.</p>
                 ) : (
-                  <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
@@ -444,7 +468,7 @@ export default function Users() {
                 ) : payoutHistory.length === 0 ? (
                   <p className="text-sm text-slate-500">No withdrawals requested yet.</p>
                 ) : (
-                  <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>

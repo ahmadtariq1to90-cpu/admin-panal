@@ -14,31 +14,64 @@ export default function Dashboard() {
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Mock chart data for now, as aggregating daily data requires complex SQL or multiple queries
-  const chartData = [
-    { name: 'Mon', users: 40, tasks: 24 },
-    { name: 'Tue', users: 30, tasks: 13 },
-    { name: 'Wed', users: 20, tasks: 98 },
-    { name: 'Thu', users: 27, tasks: 39 },
-    { name: 'Fri', users: 18, tasks: 48 },
-    { name: 'Sat', users: 23, tasks: 38 },
-    { name: 'Sun', users: 34, tasks: 43 },
-  ];
+  const [chartData, setChartData] = useState<any[]>([
+    { name: 'Mon', users: 0, tasks: 0 },
+    { name: 'Tue', users: 0, tasks: 0 },
+    { name: 'Wed', users: 0, tasks: 0 },
+    { name: 'Thu', users: 0, tasks: 0 },
+    { name: 'Fri', users: 0, tasks: 0 },
+    { name: 'Sat', users: 0, tasks: 0 },
+    { name: 'Sun', users: 0, tasks: 0 },
+  ]);
 
   useEffect(() => {
     fetchDashboardData();
+
+    // Set up real-time subscriptions
+    const usersSubscription = supabase
+      .channel('public:users')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+        fetchDashboardData();
+      })
+      .subscribe();
+
+    const submissionsSubscription = supabase
+      .channel('public:task_submissions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_submissions' }, () => {
+        fetchDashboardData();
+      })
+      .subscribe();
+
+    const withdrawalsSubscription = supabase
+      .channel('public:withdrawals')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, () => {
+        fetchDashboardData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(usersSubscription);
+      supabase.removeChannel(submissionsSubscription);
+      supabase.removeChannel(withdrawalsSubscription);
+    };
   }, []);
 
   const fetchDashboardData = async () => {
     setLoading(true);
     try {
+      const sevenDaysAgo = new Date();
+      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+      const isoDate = sevenDaysAgo.toISOString();
+
       // Fetch counts
-      const [usersRes, pendingWithdrawalsRes, pendingApprovalsRes, payoutsRes, recentSubmissionsRes] = await Promise.all([
+      const [usersRes, pendingWithdrawalsRes, pendingApprovalsRes, payoutsRes, recentSubmissionsRes, recentUsersRes, recentTasksRes] = await Promise.all([
         supabase.from('users').select('*', { count: 'exact', head: true }),
         supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('task_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('withdrawals').select('amount').eq('status', 'approved'),
-        supabase.from('task_submissions').select('*, task:tasks(task_name), user:users(first_name, last_name)').order('id', { ascending: false }).limit(5)
+        supabase.from('task_submissions').select('*, task:tasks(task_name), user:users(first_name, last_name)').order('id', { ascending: false }).limit(5),
+        supabase.from('users').select('created_at').gte('created_at', isoDate),
+        supabase.from('task_submissions').select('created_at').gte('created_at', isoDate).eq('status', 'approved')
       ]);
 
       const totalPayouts = payoutsRes.data?.reduce((sum, w) => sum + (w.amount || 0), 0) || 0;
@@ -59,6 +92,27 @@ export default function Dashboard() {
         time: new Date(sub.created_at || sub.submitted_at || Date.now()).toLocaleString()
       }));
       setRecentActivity(activity);
+
+      // Process chart data
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const newChartData = [];
+      
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dayName = days[d.getDay()];
+        const dateStr = d.toISOString().split('T')[0];
+        
+        const usersCount = (recentUsersRes.data || []).filter(u => u.created_at?.startsWith(dateStr)).length;
+        const tasksCount = (recentTasksRes.data || []).filter(t => t.created_at?.startsWith(dateStr)).length;
+        
+        newChartData.push({
+          name: dayName,
+          users: usersCount,
+          tasks: tasksCount
+        });
+      }
+      setChartData(newChartData);
 
     } catch (error) {
       console.error('Error fetching dashboard data:', error);

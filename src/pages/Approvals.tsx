@@ -144,7 +144,7 @@ export default function Approvals() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <CardTitle>Pending Submissions</CardTitle>
           <div className="w-72 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -157,6 +157,7 @@ export default function Approvals() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -216,6 +217,7 @@ export default function Approvals() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 
@@ -227,7 +229,7 @@ export default function Approvals() {
       >
         {selectedSubmission && (
           <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
               <div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">User</p>
                 <p className="font-medium text-slate-900 dark:text-white">{selectedSubmission.user?.first_name} {selectedSubmission.user?.last_name}</p>

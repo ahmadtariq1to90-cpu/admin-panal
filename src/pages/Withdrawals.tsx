@@ -152,7 +152,7 @@ export default function Withdrawals() {
       </div>
 
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <CardTitle>Pending Payouts</CardTitle>
           <div className="w-72 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -165,6 +165,7 @@ export default function Withdrawals() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
+          <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -220,6 +221,7 @@ export default function Withdrawals() {
               )}
             </TableBody>
           </Table>
+          </div>
         </CardContent>
       </Card>
 
