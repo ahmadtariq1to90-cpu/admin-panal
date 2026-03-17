@@ -18,10 +18,23 @@ export default function Approvals() {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [pkrRate, setPkrRate] = useState(278);
 
   useEffect(() => {
     fetchSubmissions();
+    fetchPkrRate();
   }, []);
+
+  const fetchPkrRate = async () => {
+    try {
+      const { data } = await supabase.from('settings').select('*').eq('setting_key', 'pkr_exchange_rate').single();
+      if (data && data.setting_value) {
+        setPkrRate(parseFloat(data.setting_value));
+      }
+    } catch (e) {
+      console.error('Error fetching PKR rate', e);
+    }
+  };
 
   const fetchSubmissions = async () => {
     setLoading(true);
@@ -192,6 +205,7 @@ export default function Approvals() {
                     </TableCell>
                     <TableCell className="font-medium text-emerald-600 dark:text-emerald-400">
                       ${sub.amount?.toFixed(2) || '0.00'}
+                      <div className="text-[10px] text-slate-500 font-normal">Rs {((sub.amount || 0) * pkrRate).toFixed(0)}</div>
                     </TableCell>
                     <TableCell className="text-slate-500">
                       {new Date((sub as any).created_at || (sub as any).submitted_at || Date.now()).toLocaleString()}
@@ -238,7 +252,7 @@ export default function Approvals() {
               <div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">Task</p>
                 <p className="font-medium text-slate-900 dark:text-white">{selectedSubmission.task?.task_name}</p>
-                <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">Reward: ${(selectedSubmission.amount || 0).toFixed(2)}</p>
+                <p className="text-sm text-emerald-600 dark:text-emerald-400 font-medium">Reward: ${(selectedSubmission.amount || 0).toFixed(2)} (Rs {((selectedSubmission.amount || 0) * pkrRate).toFixed(0)})</p>
               </div>
             </div>
 

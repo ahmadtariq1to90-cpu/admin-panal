@@ -25,10 +25,23 @@ export default function Tasks() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isSavingCategory, setIsSavingCategory] = useState(false);
+  const [pkrRate, setPkrRate] = useState(278);
 
   useEffect(() => {
     fetchData();
+    fetchPkrRate();
   }, []);
+
+  const fetchPkrRate = async () => {
+    try {
+      const { data } = await supabase.from('settings').select('*').eq('setting_key', 'pkr_exchange_rate').single();
+      if (data && data.setting_value) {
+        setPkrRate(parseFloat(data.setting_value));
+      }
+    } catch (e) {
+      console.error('Error fetching PKR rate', e);
+    }
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -218,6 +231,7 @@ export default function Tasks() {
                     </TableCell>
                     <TableCell className="font-medium text-emerald-600 dark:text-emerald-400">
                       ${(task.reward_amount || 0).toFixed(2)}
+                      <div className="text-[10px] text-slate-500 font-normal">Rs {((task.reward_amount || 0) * pkrRate).toFixed(0)}</div>
                     </TableCell>
                     <TableCell>
                       <Badge variant={
@@ -305,6 +319,7 @@ export default function Tasks() {
             <div className="space-y-2 col-span-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Reward Amount ($)</label>
               <Input type="number" step="0.01" placeholder="0.50" value={editingTask?.reward_amount || ''} onChange={e => setEditingTask({...editingTask, reward_amount: parseFloat(e.target.value)})} />
+              <p className="text-[10px] text-slate-500">Rs {((editingTask?.reward_amount || 0) * pkrRate).toFixed(0)}</p>
             </div>
 
             <div className="space-y-2 col-span-2">

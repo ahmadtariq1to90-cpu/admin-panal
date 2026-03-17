@@ -29,10 +29,23 @@ export default function Users() {
   const [taskHistory, setTaskHistory] = useState<TaskSubmission[]>([]);
   const [payoutHistory, setPayoutHistory] = useState<Withdrawal[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [pkrRate, setPkrRate] = useState(278);
 
   useEffect(() => {
     fetchUsers();
+    fetchPkrRate();
   }, []);
+
+  const fetchPkrRate = async () => {
+    try {
+      const { data } = await supabase.from('settings').select('*').eq('setting_key', 'pkr_exchange_rate').single();
+      if (data && data.setting_value) {
+        setPkrRate(parseFloat(data.setting_value));
+      }
+    } catch (e) {
+      console.error('Error fetching PKR rate', e);
+    }
+  };
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -179,6 +192,7 @@ export default function Users() {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Birthday</TableHead>
                 <TableHead>Zip Code</TableHead>
                 <TableHead>Balance</TableHead>
                 <TableHead>Tasks</TableHead>
@@ -225,12 +239,17 @@ export default function Users() {
                         )}
                       </div>
                     </TableCell>
+                    <TableCell className="text-slate-500">{user.birthday ? new Date(user.birthday).toLocaleDateString() : '-'}</TableCell>
                     <TableCell className="text-slate-500">{user.zip_code || '-'}</TableCell>
                     <TableCell className="font-medium text-emerald-600 dark:text-emerald-400">
                       ${(user.balance || 0).toFixed(2)}
+                      <div className="text-[10px] text-slate-500 font-normal">Rs {((user.balance || 0) * pkrRate).toFixed(0)}</div>
                     </TableCell>
                     <TableCell>{user.total_tasks_completed || 0}</TableCell>
-                    <TableCell>${(user.total_withdraw || 0).toFixed(2)}</TableCell>
+                    <TableCell>
+                      ${(user.total_withdraw || 0).toFixed(2)}
+                      <div className="text-[10px] text-slate-500 font-normal">Rs {((user.total_withdraw || 0) * pkrRate).toFixed(0)}</div>
+                    </TableCell>
                     <TableCell className="text-slate-500">{new Date(user.created_at).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -373,10 +392,12 @@ export default function Users() {
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Balance ($)</label>
                     <Input type="number" step="0.01" value={editForm.balance || 0} onChange={e => setEditForm({...editForm, balance: parseFloat(e.target.value)})} />
+                    <p className="text-[10px] text-slate-500">Rs {((editForm.balance || 0) * pkrRate).toFixed(0)}</p>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Referral Earnings ($)</label>
                     <Input type="number" step="0.01" value={editForm.referral_earnings || 0} onChange={e => setEditForm({...editForm, referral_earnings: parseFloat(e.target.value)})} />
+                    <p className="text-[10px] text-slate-500">Rs {((editForm.referral_earnings || 0) * pkrRate).toFixed(0)}</p>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">New Password (Leave blank to keep current)</label>

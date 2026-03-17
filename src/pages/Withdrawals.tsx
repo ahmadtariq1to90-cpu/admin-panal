@@ -18,10 +18,23 @@ export default function Withdrawals() {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [pkrRate, setPkrRate] = useState(278);
 
   useEffect(() => {
     fetchWithdrawals();
+    fetchPkrRate();
   }, []);
+
+  const fetchPkrRate = async () => {
+    try {
+      const { data } = await supabase.from('settings').select('*').eq('setting_key', 'pkr_exchange_rate').single();
+      if (data && data.setting_value) {
+        setPkrRate(parseFloat(data.setting_value));
+      }
+    } catch (e) {
+      console.error('Error fetching PKR rate', e);
+    }
+  };
 
   const fetchWithdrawals = async () => {
     setLoading(true);
@@ -197,6 +210,7 @@ export default function Withdrawals() {
                     </TableCell>
                     <TableCell className="font-bold text-emerald-600 dark:text-emerald-400 text-lg">
                       ${w.amount?.toFixed(2) || '0.00'}
+                      <div className="text-[10px] text-slate-500 font-normal">Rs {((w.amount || 0) * pkrRate).toFixed(0)}</div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline" className="uppercase font-bold tracking-wider text-xs">
@@ -240,6 +254,9 @@ export default function Withdrawals() {
               <h2 className="text-3xl font-bold text-slate-900 dark:text-white">
                 ${(selectedWithdrawal.amount || 0).toFixed(2)}
               </h2>
+              <p className="text-sm font-medium text-slate-500">
+                Rs {((selectedWithdrawal.amount || 0) * pkrRate).toFixed(0)}
+              </p>
               <p className="text-sm text-slate-500 dark:text-slate-400 uppercase tracking-widest font-medium">
                 Requested Amount
               </p>

@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('general');
   const [referralCommission, setReferralCommission] = useState('10');
+  const [pkrExchangeRate, setPkrExchangeRate] = useState('278');
   const [isSaving, setIsSaving] = useState(false);
 
   // Password state
@@ -23,9 +24,13 @@ export default function Settings() {
 
   const fetchSettings = async () => {
     try {
-      const { data, error } = await supabase.from('settings').select('*').eq('setting_key', 'referral_commission').single();
-      if (data) {
-        setReferralCommission(data.setting_value);
+      const { data: refData } = await supabase.from('settings').select('*').eq('setting_key', 'referral_commission').single();
+      if (refData) {
+        setReferralCommission(refData.setting_value);
+      }
+      const { data: pkrData } = await supabase.from('settings').select('*').eq('setting_key', 'pkr_exchange_rate').single();
+      if (pkrData) {
+        setPkrExchangeRate(pkrData.setting_value);
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -46,6 +51,25 @@ export default function Settings() {
     } catch (error: any) {
       console.error('Error saving referral setting:', error);
       toast.error('Failed to update referral commission: ' + error.message, { id: toastId });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveGeneral = async () => {
+    setIsSaving(true);
+    const toastId = toast.loading('Saving general settings...');
+    try {
+      const { error } = await supabase.from('settings').upsert({
+        setting_key: 'pkr_exchange_rate',
+        setting_value: pkrExchangeRate
+      }, { onConflict: 'setting_key' });
+      
+      if (error) throw error;
+      toast.success('Settings saved successfully', { id: toastId });
+    } catch (error: any) {
+      console.error('Error saving general settings:', error);
+      toast.error('Failed to save settings: ' + error.message, { id: toastId });
     } finally {
       setIsSaving(false);
     }
@@ -163,10 +187,20 @@ export default function Settings() {
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Minimum Withdrawal Amount ($)</label>
                     <Input defaultValue="5.00" type="number" step="0.5" />
                   </div>
+                  <div className="grid gap-2">
+                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300">USD to PKR Exchange Rate</label>
+                    <Input 
+                      type="number" 
+                      step="0.01" 
+                      value={pkrExchangeRate} 
+                      onChange={(e) => setPkrExchangeRate(e.target.value)} 
+                    />
+                    <p className="text-xs text-slate-500">Used to display PKR equivalent amounts across the admin panel.</p>
+                  </div>
                 </div>
                 <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-                  <Button className="gap-2" onClick={() => toast.success('Settings saved!')}>
-                    <Save className="w-4 h-4" /> Save Changes
+                  <Button className="gap-2" onClick={handleSaveGeneral} disabled={isSaving}>
+                    <Save className="w-4 h-4" /> {isSaving ? 'Saving...' : 'Save Changes'}
                   </Button>
                 </div>
               </CardContent>

@@ -31,9 +31,10 @@ CREATE POLICY "Allow admin full access to task_categories" ON public.task_catego
     )
 );
 
--- 3. Add 'category_id' to the 'tasks' table
+-- 3. Add 'category_id' and 'status' to the 'tasks' table
 ALTER TABLE public.tasks 
-ADD COLUMN IF NOT EXISTS category_id UUID REFERENCES public.task_categories(id) ON DELETE SET NULL;
+ADD COLUMN IF NOT EXISTS category_id UUID REFERENCES public.task_categories(id) ON DELETE SET NULL,
+ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active';
 
 -- 4. Ensure other tables exist (just in case)
 CREATE TABLE IF NOT EXISTS public.tasks (
@@ -69,11 +70,27 @@ CREATE TABLE IF NOT EXISTS public.withdrawals (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS public.notifications (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
-    title TEXT NOT NULL,
-    message TEXT NOT NULL,
-    is_read BOOLEAN DEFAULT false,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+CREATE TABLE IF NOT EXISTS public.settings (
+    setting_key TEXT PRIMARY KEY,
+    setting_value TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Insert default values
+INSERT INTO public.settings (setting_key, setting_value)
+VALUES 
+    ('referral_commission', '10'),
+    ('pkr_exchange_rate', '278')
+ON CONFLICT (setting_key) DO NOTHING;
+
+-- Enable RLS for settings
+ALTER TABLE public.settings ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for settings
+CREATE POLICY "Allow public read access to settings" ON public.settings FOR SELECT USING (true);
+CREATE POLICY "Allow admin full access to settings" ON public.settings FOR ALL USING (
+    EXISTS (
+        SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role = 'admin'
+    )
 );

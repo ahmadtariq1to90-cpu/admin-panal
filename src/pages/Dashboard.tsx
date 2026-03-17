@@ -13,6 +13,7 @@ export default function Dashboard() {
   });
   const [recentActivity, setRecentActivity] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pkrRate, setPkrRate] = useState(278);
 
   const [chartData, setChartData] = useState<any[]>([
     { name: 'Mon', users: 0, tasks: 0 },
@@ -26,6 +27,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchDashboardData();
+    fetchPkrRate();
 
     // Set up real-time subscriptions
     const usersSubscription = supabase
@@ -159,6 +161,7 @@ export default function Dashboard() {
         <StatCard 
           title="Total Payouts" 
           value={loading ? '...' : `$${stats.totalPayouts.toFixed(2)}`} 
+          subValue={loading ? '' : `Rs ${(stats.totalPayouts * pkrRate).toFixed(0)}`}
           trend="+0%" 
           icon={DollarSign} 
           color="text-emerald-500" 
@@ -228,7 +231,7 @@ export default function Dashboard() {
   );
 }
 
-function StatCard({ title, value, trend, icon: Icon, color, bg }: any) {
+function StatCard({ title, value, subValue, trend, icon: Icon, color, bg }: any) {
   return (
     <Card>
       <CardContent className="p-6">
@@ -236,6 +239,7 @@ function StatCard({ title, value, trend, icon: Icon, color, bg }: any) {
           <div>
             <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
             <h4 className="text-3xl font-bold text-slate-900 dark:text-white mt-2">{value}</h4>
+            {subValue && <p className="text-xs text-slate-500 mt-1">{subValue}</p>}
           </div>
           <div className={`w-12 h-12 rounded-full ${bg} flex items-center justify-center`}>
             <Icon className={`w-6 h-6 ${color}`} />
