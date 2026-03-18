@@ -44,7 +44,7 @@ export default function Approvals() {
         .select(`
           *,
           user:userrrr(*),
-          task:tasks table(*)
+          task:"tasks table"(*)
         `)
         .eq('status', 'pending')
         .order('id', { ascending: false });

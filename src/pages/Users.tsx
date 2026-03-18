@@ -65,7 +65,7 @@ export default function Users() {
     setHistoryLoading(true);
     try {
       const [tasksRes, payoutsRes] = await Promise.all([
-        supabase.from('task_submissions').select('*, task:tasks table(*)').eq('user_id', userId).order('id', { ascending: false }),
+        supabase.from('task_submissions').select('*, task:"tasks table"(*)').eq('user_id', userId).order('id', { ascending: false }),
         supabase.from('withdrawals').select('*').eq('user_id', userId).order('id', { ascending: false })
       ]);
       

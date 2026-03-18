@@ -26,6 +26,17 @@ export default function Dashboard() {
   ]);
 
   useEffect(() => {
+    const fetchPkrRate = async () => {
+      try {
+        const { data } = await supabase.from('settings').select('*').eq('setting_key', 'pkr_exchange_rate').limit(1).maybeSingle();
+        if (data && data.setting_value) {
+          setPkrRate(parseFloat(data.setting_value));
+        }
+      } catch (e) {
+        console.error('Error fetching PKR rate', e);
+      }
+    };
+
     fetchDashboardData();
     fetchPkrRate();
 
@@ -71,7 +82,7 @@ export default function Dashboard() {
         supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('task_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('withdrawals').select('amount').eq('status', 'approved'),
-        supabase.from('task_submissions').select('*, task:tasks table(title), user:userrrr(name)').order('id', { ascending: false }).limit(5),
+        supabase.from('task_submissions').select('*, task:"tasks table"(title), user:userrrr(name)').order('id', { ascending: false }).limit(5),
         supabase.from('userrrr').select('created_at').gte('created_at', isoDate),
         supabase.from('task_submissions').select('created_at').gte('created_at', isoDate).eq('status', 'approved')
       ]);
