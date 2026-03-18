@@ -38,7 +38,7 @@ export default function Users() {
 
   const fetchPkrRate = async () => {
     try {
-      const { data } = await supabase.from('settings').select('*').eq('setting_key', 'pkr_exchange_rate').single();
+      const { data } = await supabase.from('settings').select('*').eq('setting_key', 'pkr_exchange_rate').limit(1).maybeSingle();
       if (data && data.setting_value) {
         setPkrRate(parseFloat(data.setting_value));
       }

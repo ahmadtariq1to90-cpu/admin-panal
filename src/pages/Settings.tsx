@@ -24,11 +24,11 @@ export default function Settings() {
 
   const fetchSettings = async () => {
     try {
-      const { data: refData } = await supabase.from('settings').select('*').eq('setting_key', 'referral_commission').single();
+      const { data: refData } = await supabase.from('settings').select('*').eq('setting_key', 'referral_commission').limit(1).maybeSingle();
       if (refData) {
         setReferralCommission(refData.setting_value);
       }
-      const { data: pkrData } = await supabase.from('settings').select('*').eq('setting_key', 'pkr_exchange_rate').single();
+      const { data: pkrData } = await supabase.from('settings').select('*').eq('setting_key', 'pkr_exchange_rate').limit(1).maybeSingle();
       if (pkrData) {
         setPkrExchangeRate(pkrData.setting_value);
       }

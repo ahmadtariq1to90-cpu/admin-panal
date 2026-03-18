@@ -38,7 +38,8 @@ export default function Login() {
         .from('userrrr')
         .select('role')
         .eq('id', data.user.id)
-        .single();
+        .limit(1)
+        .maybeSingle();
 
       if (userError) throw userError;
 

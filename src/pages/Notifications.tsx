@@ -56,7 +56,8 @@ export default function Notifications() {
             .from('userrrr')
             .select('id')
             .eq('email', userId)
-            .single();
+            .limit(1)
+            .maybeSingle();
             
           if (userError || !userData) {
             throw new Error('User not found with that email.');
