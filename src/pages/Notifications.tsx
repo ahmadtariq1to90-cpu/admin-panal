@@ -239,7 +239,7 @@ export default function Notifications() {
                       </TableCell>
                       <TableCell>
                         <Badge variant={item.user ? 'secondary' : 'default'}>
-                          {item.user ? `${item.user.name || ''}`.trim() || item.user.email : 'Unknown User'}
+                          {item.user ? `${item.user.name || [item.user.first_name, item.user.last_name].filter(Boolean).join(' ') || ''}`.trim() || item.user.email : 'Unknown User'}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-slate-500 text-sm">

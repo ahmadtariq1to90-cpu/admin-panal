@@ -58,10 +58,11 @@ export default function Withdrawals() {
     }
   };
 
-  const filteredWithdrawals = withdrawals.filter(w => 
-    `${w.user?.name || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    w.method?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredWithdrawals = withdrawals.filter(w => {
+    const userName = w.user?.name || [w.user?.first_name, w.user?.last_name].filter(Boolean).join(' ') || '';
+    return userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           w.method?.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   const handleReview = (w: Withdrawal) => {
     setSelectedWithdrawal(w);
@@ -200,12 +201,19 @@ export default function Withdrawals() {
                   <TableCell colSpan={6} className="text-center py-8 text-slate-500">No pending withdrawals found.</TableCell>
                 </TableRow>
               ) : (
-                filteredWithdrawals.map((w) => (
+                filteredWithdrawals.map((w) => {
+                  const userName = w.user?.name || [w.user?.first_name, w.user?.last_name].filter(Boolean).join(' ') || 'Unknown User';
+                  return (
                   <TableRow key={w.id}>
                     <TableCell>
-                      <div>
-                        <p className="font-medium text-slate-900 dark:text-slate-100">{w.user?.name}</p>
-                        <p className="text-xs text-slate-500">{w.user?.email}</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-medium text-xs">
+                          {userName.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900 dark:text-slate-100">{userName}</p>
+                          <p className="text-xs text-slate-500">{w.user?.email}</p>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="font-bold text-emerald-600 dark:text-emerald-400 text-lg">
@@ -231,7 +239,7 @@ export default function Withdrawals() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
+                )})
               )}
             </TableBody>
           </Table>
@@ -265,7 +273,7 @@ export default function Withdrawals() {
             <div className="space-y-4">
               <div className="flex justify-between items-center py-3 border-b border-slate-200 dark:border-slate-800">
                 <span className="text-slate-500 dark:text-slate-400 font-medium">User</span>
-                <span className="font-medium text-slate-900 dark:text-white">{selectedWithdrawal.user?.name}</span>
+                <span className="font-medium text-slate-900 dark:text-white">{selectedWithdrawal.user?.name || [selectedWithdrawal.user?.first_name, selectedWithdrawal.user?.last_name].filter(Boolean).join(' ') || 'Unknown User'}</span>
               </div>
               <div className="flex justify-between items-center py-3 border-b border-slate-200 dark:border-slate-800">
                 <span className="text-slate-500 dark:text-slate-400 font-medium">Payment Method</span>

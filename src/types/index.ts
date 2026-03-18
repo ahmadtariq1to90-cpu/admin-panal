@@ -1,14 +1,22 @@
 export type User = {
   id: string;
   auth_id?: string;
-  name: string;
+  name?: string;
+  first_name?: string;
+  last_name?: string;
   email: string;
   phone?: string;
+  phone_number?: string;
   date_of_birth?: string;
+  birthday?: string;
   country?: string;
   city?: string;
   zip_code?: string;
+  zipcode?: string;
   'profile-image'?: string;
+  profile_image?: string;
+  profile_image_url?: string;
+  profile_pic?: string;
   balance: number;
   referral_code?: string;
   referral_by?: string;

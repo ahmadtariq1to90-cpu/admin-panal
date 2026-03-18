@@ -59,10 +59,11 @@ export default function Approvals() {
     }
   };
 
-  const filteredSubmissions = submissions.filter(sub => 
-    `${sub.user?.name || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    sub.task?.title?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredSubmissions = submissions.filter(sub => {
+    const userName = sub.user?.name || [sub.user?.first_name, sub.user?.last_name].filter(Boolean).join(' ') || '';
+    return userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           sub.task?.title?.toLowerCase().includes(searchTerm.toLowerCase());
+  });
 
   const handleReview = (sub: TaskSubmission) => {
     setSelectedSubmission(sub);
@@ -192,12 +193,19 @@ export default function Approvals() {
                   <TableCell colSpan={6} className="text-center py-8 text-slate-500">No pending submissions found.</TableCell>
                 </TableRow>
               ) : (
-                filteredSubmissions.map((sub) => (
+                filteredSubmissions.map((sub) => {
+                  const userName = sub.user?.name || [sub.user?.first_name, sub.user?.last_name].filter(Boolean).join(' ') || 'Unknown User';
+                  return (
                   <TableRow key={sub.id}>
                     <TableCell>
-                      <div>
-                        <p className="font-medium text-slate-900 dark:text-slate-100">{sub.user?.name}</p>
-                        <p className="text-xs text-slate-500">{sub.user?.email}</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-medium text-xs">
+                          {userName.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-medium text-slate-900 dark:text-slate-100">{userName}</p>
+                          <p className="text-xs text-slate-500">{sub.user?.email}</p>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -227,7 +235,7 @@ export default function Approvals() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
+                )})
               )}
             </TableBody>
           </Table>
@@ -246,7 +254,7 @@ export default function Approvals() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-lg">
               <div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider mb-1">User</p>
-                <p className="font-medium text-slate-900 dark:text-white">{selectedSubmission.user?.name}</p>
+                <p className="font-medium text-slate-900 dark:text-white">{selectedSubmission.user?.name || [selectedSubmission.user?.first_name, selectedSubmission.user?.last_name].filter(Boolean).join(' ') || 'Unknown User'}</p>
                 <p className="text-sm text-slate-500">{selectedSubmission.user?.email}</p>
               </div>
               <div>

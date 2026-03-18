@@ -10,6 +10,13 @@ import { User, TaskSubmission, Withdrawal } from '@/types';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
+const getUserName = (user: Partial<User>) => user.name || [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Unknown User';
+const getUserImage = (user: Partial<User>) => user['profile-image'] || user.profile_image || user.profile_image_url || user.profile_pic;
+const getUserPhone = (user: Partial<User>) => user.phone || user.phone_number;
+const getUserBirthday = (user: Partial<User>) => user.date_of_birth || user.birthday;
+
+const getUserZipCode = (user: Partial<User>) => user.zip_code || user.zipcode;
+
 export default function Users() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,6 +59,7 @@ export default function Users() {
     try {
       const { data, error } = await supabase.from('users').select('*').order('id', { ascending: false });
       if (error) throw error;
+      if (data && data.length > 0) console.log('FIRST USER:', data[0]);
       setUsers(data || []);
     } catch (error: any) {
       console.error('Error fetching users:', error);
@@ -100,15 +108,25 @@ export default function Users() {
         .from('users')
         .update({
           name: editForm.name,
+          first_name: editForm.first_name,
+          last_name: editForm.last_name,
           email: editForm.email,
           phone: editForm.phone,
+          phone_number: editForm.phone_number,
           date_of_birth: editForm.date_of_birth,
+          birthday: editForm.birthday,
           country: editForm.country,
           city: editForm.city,
           zip_code: editForm.zip_code,
+          zipcode: editForm.zipcode,
+          referral_code: editForm.referral_code,
+          referral_by: editForm.referral_by,
           balance: editForm.balance,
           referral_earnings: editForm.referral_earnings,
           'profile-image': editForm['profile-image'],
+          profile_image: editForm.profile_image,
+          profile_image_url: editForm.profile_image_url,
+          profile_pic: editForm.profile_pic,
         })
         .eq('id', selectedUser.id);
 
@@ -161,12 +179,17 @@ export default function Users() {
   };
 
   const filteredUsers = users.filter(user => 
-    `${user.name || ''}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    `${getUserName(user)}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="space-y-6">
+      {users.length > 0 && (
+        <div className="bg-slate-100 p-4 rounded-md overflow-auto text-xs font-mono">
+          {JSON.stringify(users[0], null, 2)}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">User Management</h1>
       </div>
@@ -206,22 +229,27 @@ export default function Users() {
               ) : filteredUsers.length === 0 ? (
                 <TableRow><TableCell colSpan={8} className="text-center py-8">No users found</TableCell></TableRow>
               ) : (
-                filteredUsers.map((user) => (
+                filteredUsers.map((user) => {
+                  const userName = getUserName(user);
+                  const userImage = getUserImage(user);
+                  const userBirthday = getUserBirthday(user);
+                  
+                  return (
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        {user['profile-image'] ? (
-                          <img src={user['profile-image']} alt={`${user.name || ''}`} className="w-8 h-8 rounded-full object-cover" />
+                        {userImage ? (
+                          <img src={userImage} alt={`${userName}`} className="w-8 h-8 rounded-full object-cover" />
                         ) : (
                           <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-medium text-xs">
-                            {user.name?.charAt(0) || 'U'}
+                            {userName.charAt(0)}
                           </div>
                         )}
                         <div>
-                          <p className="font-medium text-slate-900 dark:text-slate-100">{user.name}</p>
+                          <p className="font-medium text-slate-900 dark:text-slate-100">{userName}</p>
                           <p className="text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
-                          {user['profile-image'] && (
-                            <a href={user['profile-image']} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-500 hover:underline mt-0.5 block truncate max-w-[150px]">
+                          {userImage && (
+                            <a href={userImage} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-500 hover:underline mt-0.5 block truncate max-w-[150px]">
                               View Image
                             </a>
                           )}
@@ -238,8 +266,8 @@ export default function Users() {
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-slate-500">{user.date_of_birth ? new Date(user.date_of_birth).toLocaleDateString() : '-'}</TableCell>
-                    <TableCell className="text-slate-500">{user.zip_code || '-'}</TableCell>
+                    <TableCell className="text-slate-500">{userBirthday ? new Date(userBirthday).toLocaleDateString() : '-'}</TableCell>
+                    <TableCell className="text-slate-500">{getUserZipCode(user) || '-'}</TableCell>
                     <TableCell className="font-medium text-emerald-600 dark:text-emerald-400">
                       ${(user.balance || 0).toFixed(2)}
                       <div className="text-[10px] text-slate-500 font-normal">Rs {((user.balance || 0) * pkrRate).toFixed(0)}</div>
@@ -271,7 +299,7 @@ export default function Users() {
                       </div>
                     </TableCell>
                   </TableRow>
-                ))
+                )})
               )}
             </TableBody>
           </Table>
@@ -282,7 +310,7 @@ export default function Users() {
       <Modal 
         isOpen={isUserModalOpen} 
         onClose={() => setIsUserModalOpen(false)}
-        title={`User Details - ${selectedUser?.name || ''}`}
+        title={`User Details - ${selectedUser ? getUserName(selectedUser) : ''}`}
         className="max-w-4xl"
       >
         <div className="flex flex-col md:flex-row gap-6 h-[600px]">
@@ -329,11 +357,11 @@ export default function Users() {
             {activeTab === 'profile' && (
               <div className="space-y-4">
                 <div className="flex items-center gap-4 mb-6">
-                  {editForm['profile-image'] ? (
-                    <img src={editForm['profile-image']} alt="Profile" className="w-16 h-16 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
+                  {getUserImage(editForm) ? (
+                    <img src={getUserImage(editForm)} alt="Profile" className="w-16 h-16 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
                   ) : (
                     <div className="w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 font-medium text-xl">
-                      {editForm.name?.charAt(0) || 'U'}
+                      {getUserName(editForm).charAt(0)}
                     </div>
                   )}
                   <div className="space-y-1">
@@ -341,12 +369,18 @@ export default function Users() {
                     <div className="flex items-center gap-2">
                       <Input 
                         placeholder="https://example.com/image.jpg" 
-                        value={editForm['profile-image'] || ''} 
-                        onChange={e => setEditForm({...editForm, 'profile-image': e.target.value})} 
+                        value={getUserImage(editForm) || ''} 
+                        onChange={e => setEditForm({
+                          ...editForm, 
+                          'profile-image': e.target.value,
+                          profile_image: e.target.value,
+                          profile_image_url: e.target.value,
+                          profile_pic: e.target.value
+                        })} 
                         className="w-full max-w-sm"
                       />
-                      {editForm['profile-image'] && (
-                        <a href={editForm['profile-image']} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium shrink-0">
+                      {getUserImage(editForm) && (
+                        <a href={getUserImage(editForm)} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium shrink-0">
                           View Link
                         </a>
                       )}
@@ -358,7 +392,19 @@ export default function Users() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Full Name</label>
-                    <Input value={editForm.name || ''} onChange={e => setEditForm({...editForm, name: e.target.value})} />
+                    <Input 
+                      value={getUserName(editForm)} 
+                      onChange={e => {
+                        const val = e.target.value;
+                        const parts = val.split(' ');
+                        setEditForm({
+                          ...editForm, 
+                          name: val,
+                          first_name: parts[0] || '',
+                          last_name: parts.slice(1).join(' ') || ''
+                        });
+                      }} 
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Email</label>
@@ -366,11 +412,18 @@ export default function Users() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Phone Number</label>
-                    <Input value={editForm.phone || ''} onChange={e => setEditForm({...editForm, phone: e.target.value})} />
+                    <Input 
+                      value={getUserPhone(editForm) || ''} 
+                      onChange={e => setEditForm({...editForm, phone: e.target.value, phone_number: e.target.value})} 
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Birthday</label>
-                    <Input type="date" value={editForm.date_of_birth || ''} onChange={e => setEditForm({...editForm, date_of_birth: e.target.value})} />
+                    <Input 
+                      type="date" 
+                      value={getUserBirthday(editForm) || ''} 
+                      onChange={e => setEditForm({...editForm, date_of_birth: e.target.value, birthday: e.target.value})} 
+                    />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Country</label>
@@ -382,7 +435,15 @@ export default function Users() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">ZIP Code</label>
-                    <Input value={editForm.zip_code || ''} onChange={e => setEditForm({...editForm, zip_code: e.target.value})} />
+                    <Input value={getUserZipCode(editForm) || ''} onChange={e => setEditForm({...editForm, zip_code: e.target.value, zipcode: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Referral Code</label>
+                    <Input value={editForm.referral_code || ''} onChange={e => setEditForm({...editForm, referral_code: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Referred By</label>
+                    <Input value={editForm.referral_by || ''} onChange={e => setEditForm({...editForm, referral_by: e.target.value})} />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Balance ($)</label>

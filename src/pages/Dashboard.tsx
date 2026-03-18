@@ -99,7 +99,7 @@ export default function Dashboard() {
       // Format recent activity
       const activity = (recentSubmissionsRes.data || []).map((sub: any) => ({
         id: sub.id,
-        user: sub.user ? `${sub.user.name || ''}`.trim() : 'Unknown User',
+        user: sub.user ? `${sub.user.name || [sub.user.first_name, sub.user.last_name].filter(Boolean).join(' ') || 'Unknown User'}`.trim() : 'Unknown User',
         action: 'completed task',
         target: sub.task?.title || 'Unknown Task',
         time: new Date(sub.created_at || sub.submitted_at || Date.now()).toLocaleString()
