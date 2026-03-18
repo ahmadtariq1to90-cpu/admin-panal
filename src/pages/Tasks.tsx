@@ -58,12 +58,12 @@ export default function Tasks() {
       }
 
       // Try to fetch tasks with category join
-      let tasksRes = await supabase.from('tasks table').select('*, category:task_categories(*)').order('id', { ascending: false });
+      let tasksRes = await supabase.from('tasks').select('*, category:task_categories(*)').order('id', { ascending: false });
       
       // If join fails (likely due to missing category_id column or table), fetch without join
       if (tasksRes.error) {
         console.warn('Failed to fetch tasks with categories, falling back to simple fetch:', tasksRes.error);
-        tasksRes = await supabase.from('tasks table').select('*').order('id', { ascending: false });
+        tasksRes = await supabase.from('tasks').select('*').order('id', { ascending: false });
       }
       
       if (tasksRes.error) throw tasksRes.error;
@@ -101,7 +101,7 @@ export default function Tasks() {
     try {
       if (editingTask.id) {
         // Update
-        const { error } = await supabase.from('tasks table').update({
+        const { error } = await supabase.from('tasks').update({
           title: editingTask.title,
           description: editingTask.description,
           reward: editingTask.reward,
@@ -114,7 +114,7 @@ export default function Tasks() {
         if (error) throw error;
       } else {
         // Insert
-        const { error } = await supabase.from('tasks table').insert([{
+        const { error } = await supabase.from('tasks').insert([{
           title: editingTask.title,
           description: editingTask.description,
           reward: editingTask.reward,
@@ -158,7 +158,7 @@ export default function Tasks() {
   const toggleTaskStatus = async (task: Task) => {
     const newStatus = task.status === 'active' ? 'paused' : 'active';
     try {
-      const { error } = await supabase.from('tasks table').update({ status: newStatus }).eq('id', task.id);
+      const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', task.id);
       if (error) throw error;
       await fetchData();
     } catch (error) {

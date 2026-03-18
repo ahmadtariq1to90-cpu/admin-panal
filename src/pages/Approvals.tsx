@@ -43,8 +43,8 @@ export default function Approvals() {
         .from('task_submissions')
         .select(`
           *,
-          user:userrrr(*),
-          task:"tasks table"(*)
+          user:users(*),
+          task:tasks(*)
         `)
         .eq('status', 'pending')
         .order('id', { ascending: false });
@@ -87,7 +87,7 @@ export default function Approvals() {
         const newTasksCompleted = (selectedSubmission.user.total_tasks_completed || 0) + 1;
         
         const { error: userError } = await supabase
-          .from('userrrr')
+          .from('users')
           .update({ 
             balance: newBalance,
             total_tasks_completed: newTasksCompleted

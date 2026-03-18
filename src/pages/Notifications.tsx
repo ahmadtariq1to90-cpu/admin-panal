@@ -29,7 +29,7 @@ export default function Notifications() {
         .from('notifications')
         .select(`
           *,
-          user:userrrr(name, email)
+          user:users(name, email)
         `)
         .order('id', { ascending: false })
         .limit(20);
@@ -53,7 +53,7 @@ export default function Notifications() {
         let targetUserId = userId;
         if (userId.includes('@')) {
           const { data: userData, error: userError } = await supabase
-            .from('userrrr')
+            .from('users')
             .select('id')
             .eq('email', userId)
             .limit(1)
@@ -78,7 +78,7 @@ export default function Notifications() {
         // Send to all users
         // Note: In a production app with many users, this should be done via a backend edge function
         // to avoid timeout and payload limits.
-        const { data: users, error: usersError } = await supabase.from('userrrr').select('id');
+        const { data: users, error: usersError } = await supabase.from('users').select('id');
         if (usersError) throw usersError;
         
         const notifications = users.map(u => ({

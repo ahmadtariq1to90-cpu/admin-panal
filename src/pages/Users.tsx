@@ -50,7 +50,7 @@ export default function Users() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('userrrr').select('*').order('id', { ascending: false });
+      const { data, error } = await supabase.from('users').select('*').order('id', { ascending: false });
       if (error) throw error;
       setUsers(data || []);
     } catch (error: any) {
@@ -65,7 +65,7 @@ export default function Users() {
     setHistoryLoading(true);
     try {
       const [tasksRes, payoutsRes] = await Promise.all([
-        supabase.from('task_submissions').select('*, task:"tasks table"(*)').eq('user_id', userId).order('id', { ascending: false }),
+        supabase.from('task_submissions').select('*, task:tasks(*)').eq('user_id', userId).order('id', { ascending: false }),
         supabase.from('withdrawals').select('*').eq('user_id', userId).order('id', { ascending: false })
       ]);
       
@@ -97,7 +97,7 @@ export default function Users() {
     const toastId = toast.loading('Saving user details...');
     try {
       const { error } = await supabase
-        .from('userrrr')
+        .from('users')
         .update({
           name: editForm.name,
           email: editForm.email,
@@ -146,7 +146,7 @@ export default function Users() {
     const toastId = toast.loading(`${isBanned ? 'Unbanning' : 'Banning'} user...`);
     try {
       const { error } = await supabase
-        .from('userrrr')
+        .from('users')
         .update({ status: newStatus })
         .eq('id', user.id);
 

@@ -43,7 +43,7 @@ export default function Withdrawals() {
         .from('withdrawals')
         .select(`
           *,
-          user:userrrr(*)
+          user:users(*)
         `)
         .eq('status', 'pending')
         .order('id', { ascending: false });
@@ -85,7 +85,7 @@ export default function Withdrawals() {
         const newTotalWithdraw = (selectedWithdrawal.user.total_withdraw || 0) + selectedWithdrawal.amount;
         
         const { error: userError } = await supabase
-          .from('userrrr')
+          .from('users')
           .update({ total_withdraw: newTotalWithdraw })
           .eq('id', selectedWithdrawal.user_id);
           
@@ -128,7 +128,7 @@ export default function Withdrawals() {
         const newBalance = (selectedWithdrawal.user.balance || 0) + selectedWithdrawal.amount;
         
         const { error: userError } = await supabase
-          .from('userrrr')
+          .from('users')
           .update({ balance: newBalance })
           .eq('id', selectedWithdrawal.user_id);
           

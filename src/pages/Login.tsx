@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function Login() {
+  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -26,31 +27,50 @@ export default function Login() {
     setError('');
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      let authData, authError;
 
-      if (error) throw error;
+      if (isSignUp) {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        authData = data;
+        authError = error;
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        authData = data;
+        authError = error;
+      }
+
+      if (authError) throw authError;
+
+      if (isSignUp && !authData.session) {
+        setError('Sign up successful! Please check your email to confirm your account.');
+        setIsLoading(false);
+        return;
+      }
 
       // Check if user is admin
       const { data: userData, error: userError } = await supabase
-        .from('userrrr')
+        .from('users')
         .select('role')
-        .eq('id', data.user.id);
+        .eq('id', authData.user!.id);
 
       if (userError) throw userError;
 
       let isAdmin = userData?.some(user => user.role === 'admin');
       
       // Fallback for the owner email
-      if (!isAdmin && data.user.email === 'ahmadtariq1to90@gmail.com') {
+      if (!isAdmin && authData.user!.email === 'ahmadtariq1to90@gmail.com') {
         isAdmin = true;
         // Try to insert or update the owner as admin in the database
         try {
-          await supabase.from('userrrr').upsert({
-            id: data.user.id,
-            email: data.user.email,
+          await supabase.from('users').upsert({
+            id: authData.user!.id,
+            email: authData.user!.email,
             role: 'admin',
             name: 'Admin',
             status: 'active'
@@ -68,7 +88,7 @@ export default function Login() {
       navigate('/');
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(err.message || 'Failed to sign in. Please check your credentials.');
+      setError(err.message || 'Failed to authenticate. Please check your credentials.');
     } finally {
       setIsLoading(false);
     }
@@ -81,12 +101,14 @@ export default function Login() {
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
             Taskvexa <span className="text-indigo-500">Admin</span>
           </h1>
-          <p className="text-slate-500 dark:text-slate-400">Sign in to access the control panel</p>
+          <p className="text-slate-500 dark:text-slate-400">
+            {isSignUp ? 'Create a new admin account' : 'Sign in to access the control panel'}
+          </p>
         </div>
 
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-8">
           {error && (
-            <div className="mb-6 p-4 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-sm rounded-lg border border-rose-200 dark:border-rose-800">
+            <div className={`mb-6 p-4 text-sm rounded-lg border ${error.includes('successful') ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800'}`}>
               {error}
             </div>
           )}
@@ -132,15 +154,28 @@ export default function Login() {
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Signing in...
+                  {isSignUp ? 'Creating account...' : 'Signing in...'}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  Sign In <ArrowRight className="w-4 h-4" />
+                  {isSignUp ? 'Sign Up' : 'Sign In'} <ArrowRight className="w-4 h-4" />
                 </span>
               )}
             </Button>
           </form>
+
+          <div className="mt-6 text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError('');
+              }}
+              className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium"
+            >
+              {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
+            </button>
+          </div>
         </div>
         
         <p className="text-center text-sm text-slate-500 mt-8">
