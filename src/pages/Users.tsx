@@ -11,11 +11,11 @@ import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
 const getUserName = (user: Partial<User>) => user.name || [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Unknown User';
-const getUserImage = (user: Partial<User>) => user['profile-image'] || user.profile_image || user.profile_image_url || user.profile_pic;
+const getUserImage = (user: Partial<User>) => user.avatar_url || user['profile-image'] || user.profile_image || user.profile_image_url || user.profile_pic;
 const getUserPhone = (user: Partial<User>) => user.phone || user.phone_number;
 const getUserBirthday = (user: Partial<User>) => user.date_of_birth || user.birthday;
 
-const getUserZipCode = (user: Partial<User>) => user.zip_code || user.zipcode;
+const getUserZipCode = (user: Partial<User>) => user.zip_code || user.zipcode || user.postal_code;
 
 export default function Users() {
   const [users, setUsers] = useState<User[]>([]);
@@ -119,6 +119,7 @@ export default function Users() {
           city: editForm.city,
           zip_code: editForm.zip_code,
           zipcode: editForm.zipcode,
+          postal_code: editForm.postal_code,
           referral_code: editForm.referral_code,
           referral_by: editForm.referral_by,
           balance: editForm.balance,
@@ -127,6 +128,7 @@ export default function Users() {
           profile_image: editForm.profile_image,
           profile_image_url: editForm.profile_image_url,
           profile_pic: editForm.profile_pic,
+          avatar_url: editForm.avatar_url,
         })
         .eq('id', selectedUser.id);
 
@@ -375,7 +377,8 @@ export default function Users() {
                           'profile-image': e.target.value,
                           profile_image: e.target.value,
                           profile_image_url: e.target.value,
-                          profile_pic: e.target.value
+                          profile_pic: e.target.value,
+                          avatar_url: e.target.value
                         })} 
                         className="w-full max-w-sm"
                       />
@@ -435,7 +438,7 @@ export default function Users() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">ZIP Code</label>
-                    <Input value={getUserZipCode(editForm) || ''} onChange={e => setEditForm({...editForm, zip_code: e.target.value, zipcode: e.target.value})} />
+                    <Input value={getUserZipCode(editForm) || ''} onChange={e => setEditForm({...editForm, zip_code: e.target.value, zipcode: e.target.value, postal_code: e.target.value})} />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Referral Code</label>

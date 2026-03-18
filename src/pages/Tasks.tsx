@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, PauseCircle, PlayCircle, Search, FolderPlus, Video, Code } from 'lucide-react';
+import { v4 as uuidv4 } from 'uuid';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { Input } from '@/components/ui/Input';
@@ -68,7 +69,16 @@ export default function Tasks() {
       
       if (tasksRes.error) throw tasksRes.error;
 
-      setTasks(tasksRes.data || []);
+      // Map data to handle both schemas
+      const mappedTasks = (tasksRes.data || []).map((t: any) => ({
+        ...t,
+        reward: t.reward !== undefined ? t.reward : (t.reward_amount || 0),
+        video_url: t.video_url !== undefined ? t.video_url : (t.task_link || ''),
+        prroof_required: t.prroof_required !== undefined ? t.prroof_required : (t.ad_code === 'true'),
+        status: t.status || 'active'
+      }));
+
+      setTasks(mappedTasks);
     } catch (error) {
       console.error('Error fetching tasks data:', error);
       toast.error('Failed to load tasks. Please check database schema.');
@@ -101,37 +111,79 @@ export default function Tasks() {
     try {
       if (editingTask.id) {
         // Update
-        const { error } = await supabase.from('tasks').update({
+        let updateData: any = {
           title: editingTask.title,
           description: editingTask.description,
-          reward: editingTask.reward,
           instructions: editingTask.instructions,
-          status: editingTask.status,
-          category_id: editingTask.category_id,
-          video_url: editingTask.video_url,
-          prroof_required: editingTask.prroof_required
-        }).eq('id', editingTask.id);
-        if (error) throw error;
+          category_id: editingTask.category_id || null,
+        };
+
+        try {
+          const { error } = await supabase.from('tasks').update({
+            ...updateData,
+            reward: editingTask.reward,
+            status: editingTask.status,
+            video_url: editingTask.video_url,
+            prroof_required: editingTask.prroof_required
+          }).eq('id', editingTask.id);
+          
+          if (error) {
+            const { error: error2 } = await supabase.from('tasks').update({
+              ...updateData,
+              reward_amount: editingTask.reward,
+              task_link: editingTask.video_url,
+              ad_code: editingTask.prroof_required ? 'true' : 'false',
+            }).eq('id', editingTask.id);
+            if (error2) throw error2;
+          }
+        } catch (e) {
+          console.error('Update error details:', e);
+          throw e;
+        }
       } else {
         // Insert
-        const { error } = await supabase.from('tasks').insert([{
+        const id = uuidv4();
+        let insertData: any = {
+          id,
           title: editingTask.title,
           description: editingTask.description,
-          reward: editingTask.reward,
           instructions: editingTask.instructions,
-          status: editingTask.status || 'active',
-          category_id: editingTask.category_id,
-          video_url: editingTask.video_url,
-          prroof_required: editingTask.prroof_required
-        }]);
-        if (error) throw error;
+          category_id: editingTask.category_id || null,
+        };
+
+        // Try to determine which schema to use
+        try {
+          // Try schema 1 (tasks table)
+          const { error } = await supabase.from('tasks').insert([{
+            ...insertData,
+            reward: editingTask.reward,
+            status: editingTask.status || 'active',
+            video_url: editingTask.video_url,
+            prroof_required: editingTask.prroof_required
+          }]);
+          
+          if (error) {
+            // If it fails, try schema 2 (tasks)
+            const { error: error2 } = await supabase.from('tasks').insert([{
+              ...insertData,
+              reward_amount: editingTask.reward,
+              task_link: editingTask.video_url,
+              ad_code: editingTask.prroof_required ? 'true' : 'false',
+              category: 'General'
+            }]);
+            if (error2) throw error2;
+          }
+        } catch (e) {
+          console.error('Insert error details:', e);
+          throw e;
+        }
       }
       await fetchData();
       setIsTaskModalOpen(false);
       toast.success(editingTask.id ? 'Task updated successfully' : 'Task created successfully');
     } catch (error: any) {
       console.error('Error saving task:', error);
-      toast.error('Failed to save task: ' + error.message);
+      toast.error('Failed to save task: ' + (error.message || JSON.stringify(error)));
     } finally {
       setIsSaving(false);
     }
@@ -141,7 +193,7 @@ export default function Tasks() {
     if (!newCategoryName.trim()) return;
     setIsSavingCategory(true);
     try {
-      const { error } = await supabase.from('task_categories').insert([{ name: newCategoryName }]);
+      const { error } = await supabase.from('task_categories').insert([{ id: uuidv4(), name: newCategoryName }]);
       if (error) throw error;
       setNewCategoryName('');
       setIsCategoryModalOpen(false);

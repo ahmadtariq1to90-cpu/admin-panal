@@ -13,10 +13,12 @@ export type User = {
   city?: string;
   zip_code?: string;
   zipcode?: string;
+  postal_code?: string;
   'profile-image'?: string;
   profile_image?: string;
   profile_image_url?: string;
   profile_pic?: string;
+  avatar_url?: string;
   balance: number;
   referral_code?: string;
   referral_by?: string;
