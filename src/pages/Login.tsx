@@ -37,13 +37,30 @@ export default function Login() {
       const { data: userData, error: userError } = await supabase
         .from('userrrr')
         .select('role')
-        .eq('id', data.user.id)
-        .limit(1)
-        .maybeSingle();
+        .eq('id', data.user.id);
 
       if (userError) throw userError;
 
-      if (userData?.role !== 'admin') {
+      let isAdmin = userData?.some(user => user.role === 'admin');
+      
+      // Fallback for the owner email
+      if (!isAdmin && data.user.email === 'ahmadtariq1to90@gmail.com') {
+        isAdmin = true;
+        // Try to insert or update the owner as admin in the database
+        try {
+          await supabase.from('userrrr').upsert({
+            id: data.user.id,
+            email: data.user.email,
+            role: 'admin',
+            name: 'Admin',
+            status: 'active'
+          }, { onConflict: 'id' });
+        } catch (upsertError) {
+          console.error('Failed to upsert admin user:', upsertError);
+        }
+      }
+
+      if (!isAdmin) {
         await supabase.auth.signOut();
         throw new Error('Unauthorized access. Admin privileges required.');
       }
