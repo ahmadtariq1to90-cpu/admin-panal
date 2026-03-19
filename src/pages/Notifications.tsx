@@ -24,44 +24,41 @@ export default function Notifications() {
   const fetchHistory = async () => {
     setLoading(true);
     try {
-      // Try fetching with users table join first
-      let { data, error } = await supabase
+      const { data: notifsData, error: notifsError } = await supabase
         .from('notifications')
-        .select(`
-          *,
-          user:users(name, first_name, last_name, email)
-        `)
+        .select('*')
         .order('id', { ascending: false })
         .limit(20);
 
-      // If it fails (likely due to missing users table), try with userrrr table
-      if (error) {
-        const res = await supabase
-          .from('notifications')
-          .select(`
-            *,
-            user:userrrr(name, first_name, last_name, email)
-          `)
-          .order('id', { ascending: false })
-          .limit(20);
-        
-        // If that also fails, just fetch notifications without user data
-        if (res.error) {
-          const fallbackRes = await supabase
-            .from('notifications')
-            .select('*')
-            .order('id', { ascending: false })
-            .limit(20);
-          data = fallbackRes.data;
-          error = fallbackRes.error;
-        } else {
-          data = res.data;
-          error = null;
-        }
-      }
+      if (notifsError) throw notifsError;
 
-      if (error) throw error;
-      setHistory(data || []);
+      const notifications = notifsData || [];
+      const userIds = [...new Set(notifications.map(n => n.user_id).filter(Boolean))];
+
+      if (userIds.length > 0) {
+        // Fetch users from both tables
+        const { data: usersData } = await supabase
+          .from('users')
+          .select('id, name, first_name, last_name, email')
+          .in('id', userIds);
+
+        const { data: userrrrData } = await supabase
+          .from('userrrr')
+          .select('id, name, first_name, last_name, email')
+          .in('id', userIds);
+
+        const allUsers = [...(usersData || []), ...(userrrrData || [])];
+        const userMap = new Map(allUsers.map(u => [u.id, u]));
+
+        const enrichedNotifications = notifications.map(n => ({
+          ...n,
+          user: n.user_id ? userMap.get(n.user_id) : null
+        }));
+        
+        setHistory(enrichedNotifications);
+      } else {
+        setHistory(notifications);
+      }
     } catch (error) {
       console.error('Error fetching notifications:', error);
     } finally {

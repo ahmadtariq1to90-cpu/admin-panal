@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Users, CreditCard, ClipboardCheck, DollarSign, TrendingUp, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -76,33 +77,33 @@ export default function Dashboard() {
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const isoDate = sevenDaysAgo.toISOString();
 
-      // Fetch counts sequentially or with fallbacks
-      let usersRes = await supabase.from('users').select('*', { count: 'exact', head: true });
-      if (usersRes.error) {
-        usersRes = await supabase.from('userrrr').select('*', { count: 'exact', head: true });
-      }
+      // Fetch counts in parallel to avoid slow sequential fallbacks
+      const [
+        usersRes1, usersRes2,
+        pendingWithdrawalsRes,
+        pendingApprovalsRes,
+        payoutsRes,
+        recentUsersRes1, recentUsersRes2,
+        recentTasksRes,
+        sub1, sub2, sub3, sub4
+      ] = await Promise.all([
+        supabase.from('users').select('*', { count: 'exact', head: true }),
+        supabase.from('userrrr').select('*', { count: 'exact', head: true }),
+        supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('task_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('withdrawals').select('amount').eq('status', 'approved'),
+        supabase.from('users').select('created_at').gte('created_at', isoDate),
+        supabase.from('userrrr').select('created_at').gte('created_at', isoDate),
+        supabase.from('task_submissions').select('created_at').gte('created_at', isoDate).eq('status', 'approved'),
+        supabase.from('task_submissions').select('*, task:tasks(title), user:users(name)').order('id', { ascending: false }).limit(5),
+        supabase.from('task_submissions').select('*, task:"tasks table"(title), user:userrrr(name)').order('id', { ascending: false }).limit(5),
+        supabase.from('task_submissions').select('*, task:tasks(title), user:userrrr(name)').order('id', { ascending: false }).limit(5),
+        supabase.from('task_submissions').select('*').order('id', { ascending: false }).limit(5)
+      ]);
 
-      const pendingWithdrawalsRes = await supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending');
-      const pendingApprovalsRes = await supabase.from('task_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending');
-      const payoutsRes = await supabase.from('withdrawals').select('amount').eq('status', 'approved');
-      
-      let recentSubmissionsRes = await supabase.from('task_submissions').select('*, task:tasks(title), user:users(name)').order('id', { ascending: false }).limit(5);
-      if (recentSubmissionsRes.error) {
-        recentSubmissionsRes = await supabase.from('task_submissions').select('*, task:"tasks table"(title), user:userrrr(name)').order('id', { ascending: false }).limit(5);
-        if (recentSubmissionsRes.error) {
-          recentSubmissionsRes = await supabase.from('task_submissions').select('*, task:tasks(title), user:userrrr(name)').order('id', { ascending: false }).limit(5);
-          if (recentSubmissionsRes.error) {
-            recentSubmissionsRes = await supabase.from('task_submissions').select('*').order('id', { ascending: false }).limit(5);
-          }
-        }
-      }
-
-      let recentUsersRes = await supabase.from('users').select('created_at').gte('created_at', isoDate);
-      if (recentUsersRes.error) {
-        recentUsersRes = await supabase.from('userrrr').select('created_at').gte('created_at', isoDate);
-      }
-
-      const recentTasksRes = await supabase.from('task_submissions').select('created_at').gte('created_at', isoDate).eq('status', 'approved');
+      const usersRes = usersRes1.error ? usersRes2 : usersRes1;
+      const recentUsersRes = recentUsersRes1.error ? recentUsersRes2 : recentUsersRes1;
+      const recentSubmissionsRes = !sub1.error ? sub1 : (!sub2.error ? sub2 : (!sub3.error ? sub3 : sub4));
 
       const totalPayouts = payoutsRes.data?.reduce((sum, w) => sum + (w.amount || 0), 0) || 0;
 
@@ -226,9 +227,9 @@ export default function Dashboard() {
         <Card className="col-span-1">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Recent Activity</CardTitle>
-            <button className="text-sm text-indigo-500 hover:text-indigo-600 font-medium flex items-center">
+            <Link to="/approvals" className="text-sm text-indigo-500 hover:text-indigo-600 font-medium flex items-center">
               View all <ArrowRight className="w-4 h-4 ml-1" />
-            </button>
+            </Link>
           </CardHeader>
           <CardContent>
             <div className="space-y-6">

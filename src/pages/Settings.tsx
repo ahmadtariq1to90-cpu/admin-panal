@@ -10,6 +10,11 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState('general');
   const [referralCommission, setReferralCommission] = useState('10');
   const [pkrExchangeRate, setPkrExchangeRate] = useState('278');
+  const [appName, setAppName] = useState('Taskvexa');
+  const [supportEmail, setSupportEmail] = useState('support@taskvexa.com');
+  const [minWithdrawal, setMinWithdrawal] = useState('5.00');
+  const [supabaseUrl, setSupabaseUrl] = useState('');
+  const [supabaseServiceKey, setSupabaseServiceKey] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   // Password state
@@ -24,16 +29,43 @@ export default function Settings() {
 
   const fetchSettings = async () => {
     try {
-      const { data: refData } = await supabase.from('settings').select('*').eq('setting_key', 'referral_commission').limit(1).maybeSingle();
-      if (refData) {
-        setReferralCommission(refData.setting_value);
-      }
-      const { data: pkrData } = await supabase.from('settings').select('*').eq('setting_key', 'pkr_exchange_rate').limit(1).maybeSingle();
-      if (pkrData) {
-        setPkrExchangeRate(pkrData.setting_value);
+      const { data, error } = await supabase.from('settings').select('*');
+      if (error) throw error;
+      
+      if (data) {
+        data.forEach(setting => {
+          if (setting.setting_key === 'referral_commission') setReferralCommission(setting.setting_value);
+          if (setting.setting_key === 'pkr_exchange_rate') setPkrExchangeRate(setting.setting_value);
+          if (setting.setting_key === 'app_name') setAppName(setting.setting_value);
+          if (setting.setting_key === 'support_email') setSupportEmail(setting.setting_value);
+          if (setting.setting_key === 'min_withdrawal') setMinWithdrawal(setting.setting_value);
+          if (setting.setting_key === 'supabase_url') setSupabaseUrl(setting.setting_value);
+          if (setting.setting_key === 'supabase_service_key') setSupabaseServiceKey(setting.setting_value);
+        });
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
+    }
+  };
+
+  const handleSaveApiKeys = async () => {
+    setIsSaving(true);
+    const toastId = toast.loading('Saving API keys...');
+    try {
+      const settingsToSave = [
+        { setting_key: 'supabase_url', setting_value: supabaseUrl },
+        { setting_key: 'supabase_service_key', setting_value: supabaseServiceKey }
+      ];
+
+      const { error } = await supabase.from('settings').upsert(settingsToSave, { onConflict: 'setting_key' });
+      
+      if (error) throw error;
+      toast.success('API keys saved successfully', { id: toastId });
+    } catch (error: any) {
+      console.error('Error saving API keys:', error);
+      toast.error('Failed to save API keys: ' + error.message, { id: toastId });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -60,10 +92,14 @@ export default function Settings() {
     setIsSaving(true);
     const toastId = toast.loading('Saving general settings...');
     try {
-      const { error } = await supabase.from('settings').upsert({
-        setting_key: 'pkr_exchange_rate',
-        setting_value: pkrExchangeRate
-      }, { onConflict: 'setting_key' });
+      const settingsToSave = [
+        { setting_key: 'pkr_exchange_rate', setting_value: pkrExchangeRate },
+        { setting_key: 'app_name', setting_value: appName },
+        { setting_key: 'support_email', setting_value: supportEmail },
+        { setting_key: 'min_withdrawal', setting_value: minWithdrawal }
+      ];
+
+      const { error } = await supabase.from('settings').upsert(settingsToSave, { onConflict: 'setting_key' });
       
       if (error) throw error;
       toast.success('Settings saved successfully', { id: toastId });
@@ -177,15 +213,27 @@ export default function Settings() {
                 <div className="space-y-4">
                   <div className="grid gap-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">App Name</label>
-                    <Input defaultValue="Taskvexa" />
+                    <Input 
+                      value={appName} 
+                      onChange={(e) => setAppName(e.target.value)} 
+                    />
                   </div>
                   <div className="grid gap-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Support Email</label>
-                    <Input defaultValue="support@taskvexa.com" type="email" />
+                    <Input 
+                      type="email" 
+                      value={supportEmail} 
+                      onChange={(e) => setSupportEmail(e.target.value)} 
+                    />
                   </div>
                   <div className="grid gap-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Minimum Withdrawal Amount ($)</label>
-                    <Input defaultValue="5.00" type="number" step="0.5" />
+                    <Input 
+                      type="number" 
+                      step="0.5" 
+                      value={minWithdrawal} 
+                      onChange={(e) => setMinWithdrawal(e.target.value)} 
+                    />
                   </div>
                   <div className="grid gap-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">USD to PKR Exchange Rate</label>
@@ -286,17 +334,27 @@ export default function Settings() {
                 <div className="space-y-4">
                   <div className="grid gap-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Supabase URL</label>
-                    <Input defaultValue="https://jzafnfhavugeclomeayw.supabase.co" type="password" />
+                    <Input 
+                      type="password" 
+                      value={supabaseUrl} 
+                      onChange={(e) => setSupabaseUrl(e.target.value)} 
+                      placeholder="https://your-project.supabase.co"
+                    />
                   </div>
                   <div className="grid gap-2">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Supabase Service Role Key</label>
-                    <Input defaultValue="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." type="password" />
+                    <Input 
+                      type="password" 
+                      value={supabaseServiceKey} 
+                      onChange={(e) => setSupabaseServiceKey(e.target.value)} 
+                      placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                    />
                     <p className="text-xs text-slate-500">Required for admin operations bypassing RLS (like changing user passwords).</p>
                   </div>
                 </div>
                 <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex justify-end">
-                  <Button className="gap-2" onClick={() => toast.success('API Keys saved!')}>
-                    <Save className="w-4 h-4" /> Save API Keys
+                  <Button className="gap-2" onClick={handleSaveApiKeys} disabled={isSaving}>
+                    <Save className="w-4 h-4" /> {isSaving ? 'Saving...' : 'Save API Keys'}
                   </Button>
                 </div>
               </CardContent>

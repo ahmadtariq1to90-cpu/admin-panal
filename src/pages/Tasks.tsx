@@ -231,6 +231,20 @@ export default function Tasks() {
     }
   };
 
+  const handleDeleteCategory = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this category? Tasks in this category might lose their categorization.')) return;
+    
+    try {
+      const { error } = await supabase.from('task_categories').delete().eq('id', id);
+      if (error) throw error;
+      await fetchData();
+      toast.success('Category deleted successfully');
+    } catch (error: any) {
+      console.error('Error deleting category:', error);
+      toast.error('Failed to delete category: ' + error.message);
+    }
+  };
+
   const toggleTaskStatus = async (task: Task) => {
     const newStatus = task.status === 'active' ? 'paused' : 'active';
     try {
@@ -463,10 +477,19 @@ export default function Tasks() {
               {categories.length === 0 ? (
                 <div className="p-3 text-sm text-slate-500 text-center">No categories found</div>
               ) : (
-                categories.map(c => (
+                categories.map((c, index) => (
                   <div key={c.id} className="p-3 text-sm flex justify-between items-center">
-                    <span className="font-medium text-slate-900 dark:text-slate-100">{c.name}</span>
-                    <Button variant="ghost" size="icon" className="h-6 w-6 text-rose-500" title="Delete Category (Not recommended if tasks exist)">
+                    <span className="font-medium text-slate-900 dark:text-slate-100">
+                      <span className="text-slate-500 mr-2">#{index + 1}</span>
+                      {c.name}
+                    </span>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 text-rose-500" 
+                      title="Delete Category (Not recommended if tasks exist)"
+                      onClick={() => handleDeleteCategory(c.id)}
+                    >
                       <Trash2 className="w-3 h-3" />
                     </Button>
                   </div>

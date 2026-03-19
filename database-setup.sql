@@ -77,6 +77,28 @@ CREATE TABLE IF NOT EXISTS public.settings (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS for notifications
+ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
+
+-- Create policies for notifications
+CREATE POLICY "Allow users to read their own notifications" ON public.notifications FOR SELECT USING (
+    auth.uid() = user_id
+);
+CREATE POLICY "Allow admin full access to notifications" ON public.notifications FOR ALL USING (
+    EXISTS (
+        SELECT 1 FROM public.users WHERE users.id = auth.uid() AND users.role = 'admin'
+    )
+);
+
 -- Insert default values
 INSERT INTO public.settings (setting_key, setting_value)
 VALUES 

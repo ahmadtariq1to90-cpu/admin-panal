@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, ShieldOff, ShieldCheck, Eye, Save, User as UserIcon, Activity, CreditCard, CheckSquare } from 'lucide-react';
+import { Search, ShieldOff, ShieldCheck, Eye, Save, User as UserIcon, Activity, CreditCard, CheckSquare, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/Table';
 import { Input } from '@/components/ui/Input';
@@ -31,6 +31,7 @@ export default function Users() {
   const [editForm, setEditForm] = useState<Partial<User>>({});
   const [newPassword, setNewPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
   // History State
   const [taskHistory, setTaskHistory] = useState<TaskSubmission[]>([]);
@@ -67,7 +68,6 @@ export default function Users() {
       }
       
       if (error) throw error;
-      if (data && data.length > 0) console.log('FIRST USER:', data[0]);
       setUsers(data || []);
     } catch (error: any) {
       console.error('Error fetching users:', error);
@@ -231,6 +231,53 @@ export default function Users() {
     }
   };
 
+  const handleDeleteUserConfirm = async () => {
+    if (!userToDelete) return;
+    const toastId = toast.loading('Deleting user...');
+    try {
+      // Fetch service role key from settings
+      const { data: settingsData } = await supabase
+        .from('settings')
+        .select('setting_value')
+        .eq('setting_key', 'supabase_service_key')
+        .single();
+
+      const serviceRoleKey = settingsData?.setting_value;
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+      if (serviceRoleKey && supabaseUrl) {
+        // Use admin client to delete user from auth
+        const { createClient } = await import('@supabase/supabase-js');
+        const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        });
+        
+        const { error: authError } = await adminClient.auth.admin.deleteUser(userToDelete.id);
+        if (authError) {
+          console.warn('Failed to delete user from Auth, proceeding with database deletion:', authError);
+        }
+      } else {
+        console.warn('Supabase Service Role Key not found in settings. User will only be deleted from database, not Auth.');
+      }
+
+      let { error } = await supabase.from('users').delete().eq('id', userToDelete.id);
+      if (error) {
+        const res = await supabase.from('userrrr').delete().eq('id', userToDelete.id);
+        error = res.error;
+      }
+      if (error) throw error;
+      setUsers(users.filter(u => u.id !== userToDelete.id));
+      toast.success('User deleted successfully', { id: toastId });
+      setUserToDelete(null);
+    } catch (error: any) {
+      console.error('Error deleting user:', error);
+      toast.error('Failed to delete user: ' + error.message, { id: toastId });
+    }
+  };
+
   const filteredUsers = users.filter(user => 
     `${getUserName(user)}`.toLowerCase().includes(searchTerm.toLowerCase()) || 
     user.email?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -238,11 +285,6 @@ export default function Users() {
 
   return (
     <div className="space-y-6">
-      {users.length > 0 && (
-        <div className="bg-slate-100 p-4 rounded-md overflow-auto text-xs font-mono">
-          {JSON.stringify(users[0], null, 2)}
-        </div>
-      )}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">User Management</h1>
       </div>
@@ -269,7 +311,6 @@ export default function Users() {
                 <TableHead>Role</TableHead>
                 <TableHead>Birthday</TableHead>
                 <TableHead>Zip Code</TableHead>
-                <TableHead>Profile Link</TableHead>
                 <TableHead>Balance</TableHead>
                 <TableHead>Tasks</TableHead>
                 <TableHead>Total Withdrawn</TableHead>
@@ -302,11 +343,6 @@ export default function Users() {
                         <div>
                           <p className="font-medium text-slate-900 dark:text-slate-100">{userName}</p>
                           <p className="text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
-                          {userImage && (
-                            <a href={userImage} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-500 hover:underline mt-0.5 block truncate max-w-[150px]">
-                              View Image
-                            </a>
-                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -322,13 +358,6 @@ export default function Users() {
                     </TableCell>
                     <TableCell className="text-slate-500">{userBirthday ? new Date(userBirthday).toLocaleDateString() : '-'}</TableCell>
                     <TableCell className="text-slate-500">{getUserZipCode(user) || '-'}</TableCell>
-                    <TableCell>
-                      {userImage ? (
-                        <a href={userImage} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline text-xs">View Image</a>
-                      ) : (
-                        <span className="text-slate-400 text-xs">-</span>
-                      )}
-                    </TableCell>
                     <TableCell className="font-medium text-emerald-600 dark:text-emerald-400">
                       ${(user.balance || 0).toFixed(2)}
                       <div className="text-[10px] text-slate-500 font-normal">Rs {((user.balance || 0) * pkrRate).toFixed(0)}</div>
@@ -356,6 +385,15 @@ export default function Users() {
                           ) : (
                             <ShieldOff className="w-4 h-4 text-rose-500" />
                           )}
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          title="Delete User"
+                          onClick={() => setUserToDelete(user)}
+                          className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -428,20 +466,41 @@ export default function Users() {
                   <div className="space-y-1">
                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Profile Image URL</label>
                     <div className="flex items-center gap-2">
-                      <Input 
-                        placeholder="https://example.com/image.jpg" 
-                        value={getUserImage(editForm) || ''} 
-                        onChange={e => setEditForm({
-                          ...editForm, 
-                          'profile-image': e.target.value,
-                          profile_image: e.target.value,
-                          profile_image_url: e.target.value,
-                          profile_pic: e.target.value,
-                          avatar_url: e.target.value
-                        })} 
-                        className="w-full max-w-sm"
-                      />
-                      {getUserImage(editForm) && (
+                      {getUserImage(editForm)?.startsWith('data:image') ? (
+                        <div className="flex-1 flex items-center justify-between bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700">
+                          <span className="text-sm text-slate-500 truncate">Base64 Image Uploaded</span>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-6 px-2 text-xs text-rose-500 hover:text-rose-600"
+                            onClick={() => setEditForm({
+                              ...editForm, 
+                              'profile-image': '',
+                              profile_image: '',
+                              profile_image_url: '',
+                              profile_pic: '',
+                              avatar_url: ''
+                            })}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ) : (
+                        <Input 
+                          placeholder="https://example.com/image.jpg" 
+                          value={getUserImage(editForm) || ''} 
+                          onChange={e => setEditForm({
+                            ...editForm, 
+                            'profile-image': e.target.value,
+                            profile_image: e.target.value,
+                            profile_image_url: e.target.value,
+                            profile_pic: e.target.value,
+                            avatar_url: e.target.value
+                          })} 
+                          className="w-full max-w-sm"
+                        />
+                      )}
+                      {getUserImage(editForm) && !getUserImage(editForm)?.startsWith('data:image') && (
                         <a href={getUserImage(editForm)} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium shrink-0">
                           View Link
                         </a>
@@ -512,34 +571,34 @@ export default function Users() {
                     <Input value={editForm.gender || ''} onChange={e => setEditForm({...editForm, gender: e.target.value})} />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Occupation</label>
-                    <Input value={editForm.occupation || ''} onChange={e => setEditForm({...editForm, occupation: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Reason</label>
-                    <Input value={editForm.reason || ''} onChange={e => setEditForm({...editForm, reason: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Work Time</label>
-                    <Input value={editForm.work_time || ''} onChange={e => setEditForm({...editForm, work_time: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Source</label>
-                    <Input value={editForm.source || ''} onChange={e => setEditForm({...editForm, source: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Phone Country</label>
                     <Input value={editForm.phone_country || ''} onChange={e => setEditForm({...editForm, phone_country: e.target.value})} />
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Balance ($)</label>
-                    <Input type="number" step="0.01" value={editForm.balance || 0} onChange={e => setEditForm({...editForm, balance: parseFloat(e.target.value)})} />
-                    <p className="text-[10px] text-slate-500">Rs {((editForm.balance || 0) * pkrRate).toFixed(0)}</p>
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Balance</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">$</span>
+                        <Input type="number" step="0.01" className="pl-6" value={editForm.balance || 0} onChange={e => setEditForm({...editForm, balance: parseFloat(e.target.value) || 0})} />
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">Rs</span>
+                        <Input type="number" step="1" className="pl-8" value={((editForm.balance || 0) * pkrRate).toFixed(0)} onChange={e => setEditForm({...editForm, balance: (parseFloat(e.target.value) || 0) / pkrRate})} />
+                      </div>
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Referral Earnings ($)</label>
-                    <Input type="number" step="0.01" value={editForm.referral_earnings || 0} onChange={e => setEditForm({...editForm, referral_earnings: parseFloat(e.target.value)})} />
-                    <p className="text-[10px] text-slate-500">Rs {((editForm.referral_earnings || 0) * pkrRate).toFixed(0)}</p>
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Referral Earnings</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">$</span>
+                        <Input type="number" step="0.01" className="pl-6" value={editForm.referral_earnings || 0} onChange={e => setEditForm({...editForm, referral_earnings: parseFloat(e.target.value) || 0})} />
+                      </div>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">Rs</span>
+                        <Input type="number" step="1" className="pl-8" value={((editForm.referral_earnings || 0) * pkrRate).toFixed(0)} onChange={e => setEditForm({...editForm, referral_earnings: (parseFloat(e.target.value) || 0) / pkrRate})} />
+                      </div>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">New Password (Leave blank to keep current)</label>
@@ -562,14 +621,32 @@ export default function Users() {
                   <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                     <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Balance</p>
                     <div className="flex items-center gap-2 mt-2">
-                      <Input type="number" step="0.01" value={editForm.balance || 0} onChange={e => setEditForm({...editForm, balance: parseFloat(e.target.value)})} className="w-32" />
+                      <div className="grid grid-cols-2 gap-2 w-full">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">$</span>
+                          <Input type="number" step="0.01" className="pl-6" value={editForm.balance || 0} onChange={e => setEditForm({...editForm, balance: parseFloat(e.target.value) || 0})} />
+                        </div>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">Rs</span>
+                          <Input type="number" step="1" className="pl-8" value={((editForm.balance || 0) * pkrRate).toFixed(0)} onChange={e => setEditForm({...editForm, balance: (parseFloat(e.target.value) || 0) / pkrRate})} />
+                        </div>
+                      </div>
                       <Button size="sm" onClick={handleUpdateUser} disabled={isSaving}>Update</Button>
                     </div>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
                     <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Referral Earnings</p>
                     <div className="flex items-center gap-2 mt-2">
-                      <Input type="number" step="0.01" value={editForm.referral_earnings || 0} onChange={e => setEditForm({...editForm, referral_earnings: parseFloat(e.target.value)})} className="w-32" />
+                      <div className="grid grid-cols-2 gap-2 w-full">
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">$</span>
+                          <Input type="number" step="0.01" className="pl-6" value={editForm.referral_earnings || 0} onChange={e => setEditForm({...editForm, referral_earnings: parseFloat(e.target.value) || 0})} />
+                        </div>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">Rs</span>
+                          <Input type="number" step="1" className="pl-8" value={((editForm.referral_earnings || 0) * pkrRate).toFixed(0)} onChange={e => setEditForm({...editForm, referral_earnings: (parseFloat(e.target.value) || 0) / pkrRate})} />
+                        </div>
+                      </div>
                       <Button size="sm" onClick={handleUpdateUser} disabled={isSaving}>Update</Button>
                     </div>
                   </div>
@@ -660,6 +737,18 @@ export default function Users() {
                 )}
               </div>
             )}
+          </div>
+        </div>
+      </Modal>
+
+      <Modal isOpen={!!userToDelete} onClose={() => setUserToDelete(null)} title="Confirm Deletion">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            Are you sure you want to delete {userToDelete ? getUserName(userToDelete) : 'this user'}? This action cannot be undone and will remove all associated data.
+          </p>
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="outline" onClick={() => setUserToDelete(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={handleDeleteUserConfirm}>Delete User</Button>
           </div>
         </div>
       </Modal>
