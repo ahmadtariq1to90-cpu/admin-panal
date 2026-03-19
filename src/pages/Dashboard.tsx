@@ -76,16 +76,33 @@ export default function Dashboard() {
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const isoDate = sevenDaysAgo.toISOString();
 
-      // Fetch counts
-      const [usersRes, pendingWithdrawalsRes, pendingApprovalsRes, payoutsRes, recentSubmissionsRes, recentUsersRes, recentTasksRes] = await Promise.all([
-        supabase.from('users').select('*', { count: 'exact', head: true }),
-        supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('task_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('withdrawals').select('amount').eq('status', 'approved'),
-        supabase.from('task_submissions').select('*, task:tasks(title), user:users(name)').order('id', { ascending: false }).limit(5),
-        supabase.from('users').select('created_at').gte('created_at', isoDate),
-        supabase.from('task_submissions').select('created_at').gte('created_at', isoDate).eq('status', 'approved')
-      ]);
+      // Fetch counts sequentially or with fallbacks
+      let usersRes = await supabase.from('users').select('*', { count: 'exact', head: true });
+      if (usersRes.error) {
+        usersRes = await supabase.from('userrrr').select('*', { count: 'exact', head: true });
+      }
+
+      const pendingWithdrawalsRes = await supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+      const pendingApprovalsRes = await supabase.from('task_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+      const payoutsRes = await supabase.from('withdrawals').select('amount').eq('status', 'approved');
+      
+      let recentSubmissionsRes = await supabase.from('task_submissions').select('*, task:tasks(title), user:users(name)').order('id', { ascending: false }).limit(5);
+      if (recentSubmissionsRes.error) {
+        recentSubmissionsRes = await supabase.from('task_submissions').select('*, task:"tasks table"(title), user:userrrr(name)').order('id', { ascending: false }).limit(5);
+        if (recentSubmissionsRes.error) {
+          recentSubmissionsRes = await supabase.from('task_submissions').select('*, task:tasks(title), user:userrrr(name)').order('id', { ascending: false }).limit(5);
+          if (recentSubmissionsRes.error) {
+            recentSubmissionsRes = await supabase.from('task_submissions').select('*').order('id', { ascending: false }).limit(5);
+          }
+        }
+      }
+
+      let recentUsersRes = await supabase.from('users').select('created_at').gte('created_at', isoDate);
+      if (recentUsersRes.error) {
+        recentUsersRes = await supabase.from('userrrr').select('created_at').gte('created_at', isoDate);
+      }
+
+      const recentTasksRes = await supabase.from('task_submissions').select('created_at').gte('created_at', isoDate).eq('status', 'approved');
 
       const totalPayouts = payoutsRes.data?.reduce((sum, w) => sum + (w.amount || 0), 0) || 0;
 

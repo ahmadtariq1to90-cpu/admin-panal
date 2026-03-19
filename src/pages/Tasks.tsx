@@ -65,6 +65,10 @@ export default function Tasks() {
       if (tasksRes.error) {
         console.warn('Failed to fetch tasks with categories, falling back to simple fetch:', tasksRes.error);
         tasksRes = await supabase.from('tasks').select('*').order('id', { ascending: false });
+        
+        if (tasksRes.error) {
+          tasksRes = await supabase.from('tasks table').select('*').order('id', { ascending: false });
+        }
       }
       
       if (tasksRes.error) throw tasksRes.error;
@@ -128,13 +132,23 @@ export default function Tasks() {
           }).eq('id', editingTask.id);
           
           if (error) {
-            const { error: error2 } = await supabase.from('tasks').update({
+            const { error: error2 } = await supabase.from('tasks table').update({
               ...updateData,
-              reward_amount: editingTask.reward,
-              task_link: editingTask.video_url,
-              ad_code: editingTask.prroof_required ? 'true' : 'false',
+              reward: editingTask.reward,
+              status: editingTask.status,
+              video_url: editingTask.video_url,
+              prroof_required: editingTask.prroof_required
             }).eq('id', editingTask.id);
-            if (error2) throw error2;
+            
+            if (error2) {
+              const { error: error3 } = await supabase.from('tasks').update({
+                ...updateData,
+                reward_amount: editingTask.reward,
+                task_link: editingTask.video_url,
+                ad_code: editingTask.prroof_required ? 'true' : 'false',
+              }).eq('id', editingTask.id);
+              if (error3) throw error3;
+            }
           }
         } catch (e) {
           console.error('Update error details:', e);
@@ -163,15 +177,25 @@ export default function Tasks() {
           }]);
           
           if (error) {
-            // If it fails, try schema 2 (tasks)
-            const { error: error2 } = await supabase.from('tasks').insert([{
+            // If it fails, try schema 2 (tasks table)
+            const { error: error2 } = await supabase.from('tasks table').insert([{
               ...insertData,
-              reward_amount: editingTask.reward,
-              task_link: editingTask.video_url,
-              ad_code: editingTask.prroof_required ? 'true' : 'false',
-              category: 'General'
+              reward: editingTask.reward,
+              status: editingTask.status || 'active',
+              video_url: editingTask.video_url,
+              prroof_required: editingTask.prroof_required
             }]);
-            if (error2) throw error2;
+            
+            if (error2) {
+              const { error: error3 } = await supabase.from('tasks').insert([{
+                ...insertData,
+                reward_amount: editingTask.reward,
+                task_link: editingTask.video_url,
+                ad_code: editingTask.prroof_required ? 'true' : 'false',
+                category: 'General'
+              }]);
+              if (error3) throw error3;
+            }
           }
         } catch (e) {
           console.error('Insert error details:', e);
@@ -211,7 +235,10 @@ export default function Tasks() {
     const newStatus = task.status === 'active' ? 'paused' : 'active';
     try {
       const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', task.id);
-      if (error) throw error;
+      if (error) {
+        const { error: error2 } = await supabase.from('tasks table').update({ status: newStatus }).eq('id', task.id);
+        if (error2) throw error2;
+      }
       await fetchData();
     } catch (error) {
       console.error('Error toggling task status:', error);

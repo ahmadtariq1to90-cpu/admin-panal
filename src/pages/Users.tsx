@@ -57,7 +57,15 @@ export default function Users() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.from('users').select('*').order('id', { ascending: false });
+      let { data, error } = await supabase.from('users').select('*').order('id', { ascending: false });
+      
+      if (error) {
+        console.warn('Failed to fetch from users table, trying userrrr:', error);
+        const res = await supabase.from('userrrr').select('*').order('id', { ascending: false });
+        data = res.data;
+        error = res.error;
+      }
+      
       if (error) throw error;
       if (data && data.length > 0) console.log('FIRST USER:', data[0]);
       setUsers(data || []);
@@ -104,7 +112,7 @@ export default function Users() {
     setIsSaving(true);
     const toastId = toast.loading('Saving user details...');
     try {
-      const { error } = await supabase
+      let { error } = await supabase
         .from('users')
         .update({
           name: editForm.name,
@@ -122,6 +130,12 @@ export default function Users() {
           postal_code: editForm.postal_code,
           referral_code: editForm.referral_code,
           referral_by: editForm.referral_by,
+          gender: editForm.gender,
+          occupation: editForm.occupation,
+          reason: editForm.reason,
+          work_time: editForm.work_time,
+          source: editForm.source,
+          phone_country: editForm.phone_country,
           balance: editForm.balance,
           referral_earnings: editForm.referral_earnings,
           'profile-image': editForm['profile-image'],
@@ -131,6 +145,43 @@ export default function Users() {
           avatar_url: editForm.avatar_url,
         })
         .eq('id', selectedUser.id);
+
+      if (error) {
+        const res = await supabase
+          .from('userrrr')
+          .update({
+            name: editForm.name,
+            first_name: editForm.first_name,
+            last_name: editForm.last_name,
+            email: editForm.email,
+            phone: editForm.phone,
+            phone_number: editForm.phone_number,
+            date_of_birth: editForm.date_of_birth,
+            birthday: editForm.birthday,
+            country: editForm.country,
+            city: editForm.city,
+            zip_code: editForm.zip_code,
+            zipcode: editForm.zipcode,
+            postal_code: editForm.postal_code,
+            referral_code: editForm.referral_code,
+            referral_by: editForm.referral_by,
+            gender: editForm.gender,
+            occupation: editForm.occupation,
+            reason: editForm.reason,
+            work_time: editForm.work_time,
+            source: editForm.source,
+            phone_country: editForm.phone_country,
+            balance: editForm.balance,
+            referral_earnings: editForm.referral_earnings,
+            'profile-image': editForm['profile-image'],
+            profile_image: editForm.profile_image,
+            profile_image_url: editForm.profile_image_url,
+            profile_pic: editForm.profile_pic,
+            avatar_url: editForm.avatar_url,
+          })
+          .eq('id', selectedUser.id);
+        error = res.error;
+      }
 
       if (error) throw error;
 
@@ -218,6 +269,7 @@ export default function Users() {
                 <TableHead>Role</TableHead>
                 <TableHead>Birthday</TableHead>
                 <TableHead>Zip Code</TableHead>
+                <TableHead>Profile Link</TableHead>
                 <TableHead>Balance</TableHead>
                 <TableHead>Tasks</TableHead>
                 <TableHead>Total Withdrawn</TableHead>
@@ -270,6 +322,13 @@ export default function Users() {
                     </TableCell>
                     <TableCell className="text-slate-500">{userBirthday ? new Date(userBirthday).toLocaleDateString() : '-'}</TableCell>
                     <TableCell className="text-slate-500">{getUserZipCode(user) || '-'}</TableCell>
+                    <TableCell>
+                      {userImage ? (
+                        <a href={userImage} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline text-xs">View Image</a>
+                      ) : (
+                        <span className="text-slate-400 text-xs">-</span>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium text-emerald-600 dark:text-emerald-400">
                       ${(user.balance || 0).toFixed(2)}
                       <div className="text-[10px] text-slate-500 font-normal">Rs {((user.balance || 0) * pkrRate).toFixed(0)}</div>
@@ -447,6 +506,30 @@ export default function Users() {
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Referred By</label>
                     <Input value={editForm.referral_by || ''} onChange={e => setEditForm({...editForm, referral_by: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Gender</label>
+                    <Input value={editForm.gender || ''} onChange={e => setEditForm({...editForm, gender: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Occupation</label>
+                    <Input value={editForm.occupation || ''} onChange={e => setEditForm({...editForm, occupation: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Reason</label>
+                    <Input value={editForm.reason || ''} onChange={e => setEditForm({...editForm, reason: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Work Time</label>
+                    <Input value={editForm.work_time || ''} onChange={e => setEditForm({...editForm, work_time: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Source</label>
+                    <Input value={editForm.source || ''} onChange={e => setEditForm({...editForm, source: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Phone Country</label>
+                    <Input value={editForm.phone_country || ''} onChange={e => setEditForm({...editForm, phone_country: e.target.value})} />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs font-medium text-slate-700 dark:text-slate-300">Balance ($)</label>

@@ -39,7 +39,7 @@ export default function Approvals() {
   const fetchSubmissions = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('task_submissions')
         .select(`
           *,
@@ -48,6 +48,65 @@ export default function Approvals() {
         `)
         .eq('status', 'pending')
         .order('id', { ascending: false });
+
+      if (error) {
+        // Try with userrrr and tasks table
+        const res = await supabase
+          .from('task_submissions')
+          .select(`
+            *,
+            user:userrrr(*),
+            task:"tasks table"(*)
+          `)
+          .eq('status', 'pending')
+          .order('id', { ascending: false });
+        
+        if (res.error) {
+          // Try with just userrrr and tasks
+          const res2 = await supabase
+            .from('task_submissions')
+            .select(`
+              *,
+              user:userrrr(*),
+              task:tasks(*)
+            `)
+            .eq('status', 'pending')
+            .order('id', { ascending: false });
+            
+          if (res2.error) {
+             // Try with users and tasks table
+             const res3 = await supabase
+              .from('task_submissions')
+              .select(`
+                *,
+                user:users(*),
+                task:"tasks table"(*)
+              `)
+              .eq('status', 'pending')
+              .order('id', { ascending: false });
+              
+             if (res3.error) {
+               // Fallback to no joins
+               const fallbackRes = await supabase
+                .from('task_submissions')
+                .select('*')
+                .eq('status', 'pending')
+                .order('id', { ascending: false });
+               data = fallbackRes.data;
+               error = fallbackRes.error;
+             } else {
+               data = res3.data;
+               error = null;
+             }
+          } else {
+            data = res2.data;
+            error = null;
+          }
+        } else {
+          data = res.data;
+          error = null;
+        }
+      }
 
       if (error) throw error;
       setSubmissions(data || []);
@@ -87,13 +146,24 @@ export default function Approvals() {
         const newBalance = (selectedSubmission.user.balance || 0) + selectedSubmission.amount;
         const newTasksCompleted = (selectedSubmission.user.total_tasks_completed || 0) + 1;
         
-        const { error: userError } = await supabase
+        let { error: userError } = await supabase
           .from('users')
           .update({ 
             balance: newBalance,
             total_tasks_completed: newTasksCompleted
           })
           .eq('id', selectedSubmission.user_id);
+          
+        if (userError) {
+          const res = await supabase
+            .from('userrrr')
+            .update({ 
+              balance: newBalance,
+              total_tasks_completed: newTasksCompleted
+            })
+            .eq('id', selectedSubmission.user_id);
+          userError = res.error;
+        }
           
         if (userError) throw userError;
       }

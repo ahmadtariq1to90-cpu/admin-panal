@@ -24,15 +24,41 @@ export default function Notifications() {
   const fetchHistory = async () => {
     setLoading(true);
     try {
-      // Fetch recent notifications
-      const { data, error } = await supabase
+      // Try fetching with users table join first
+      let { data, error } = await supabase
         .from('notifications')
         .select(`
           *,
-          user:users(name, email)
+          user:users(name, first_name, last_name, email)
         `)
         .order('id', { ascending: false })
         .limit(20);
+
+      // If it fails (likely due to missing users table), try with userrrr table
+      if (error) {
+        const res = await supabase
+          .from('notifications')
+          .select(`
+            *,
+            user:userrrr(name, first_name, last_name, email)
+          `)
+          .order('id', { ascending: false })
+          .limit(20);
+        
+        // If that also fails, just fetch notifications without user data
+        if (res.error) {
+          const fallbackRes = await supabase
+            .from('notifications')
+            .select('*')
+            .order('id', { ascending: false })
+            .limit(20);
+          data = fallbackRes.data;
+          error = fallbackRes.error;
+        } else {
+          data = res.data;
+          error = null;
+        }
+      }
 
       if (error) throw error;
       setHistory(data || []);
@@ -52,13 +78,24 @@ export default function Notifications() {
         // Find user by email or ID
         let targetUserId = userId;
         if (userId.includes('@')) {
-          const { data: userData, error: userError } = await supabase
+          let { data: userData, error: userError } = await supabase
             .from('users')
             .select('id')
             .eq('email', userId)
             .limit(1)
             .maybeSingle();
             
+          if (userError || !userData) {
+            const res = await supabase
+              .from('userrrr')
+              .select('id')
+              .eq('email', userId)
+              .limit(1)
+              .maybeSingle();
+            userData = res.data;
+            userError = res.error;
+          }
+
           if (userError || !userData) {
             throw new Error('User not found with that email.');
           }
@@ -78,8 +115,13 @@ export default function Notifications() {
         // Send to all users
         // Note: In a production app with many users, this should be done via a backend edge function
         // to avoid timeout and payload limits.
-        const { data: users, error: usersError } = await supabase.from('users').select('id');
-        if (usersError) throw usersError;
+        let { data: users, error: usersError } = await supabase.from('users').select('id');
+        if (usersError || !users) {
+          const res = await supabase.from('userrrr').select('id');
+          users = res.data;
+          usersError = res.error;
+        }
+        if (usersError || !users) throw usersError || new Error('Failed to fetch users');
         
         const notifications = users.map(u => ({
           user_id: u.id,

@@ -54,10 +54,21 @@ export default function Login() {
       }
 
       // Check if user is admin
-      const { data: userData, error: userError } = await supabase
+      let { data: userData, error: userError } = await supabase
         .from('users')
         .select('role')
         .eq('id', authData.user!.id);
+
+      let targetTable = 'users';
+      if (userError) {
+        const res = await supabase
+          .from('userrrr')
+          .select('role')
+          .eq('id', authData.user!.id);
+        userData = res.data;
+        userError = res.error;
+        targetTable = 'userrrr';
+      }
 
       if (userError) throw userError;
 
@@ -68,7 +79,7 @@ export default function Login() {
         isAdmin = true;
         // Try to insert or update the owner as admin in the database
         try {
-          await supabase.from('users').upsert({
+          await supabase.from(targetTable).upsert({
             id: authData.user!.id,
             email: authData.user!.email,
             role: 'admin',

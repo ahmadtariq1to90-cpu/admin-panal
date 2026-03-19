@@ -22,6 +22,12 @@ export type User = {
   balance: number;
   referral_code?: string;
   referral_by?: string;
+  gender?: string;
+  occupation?: string;
+  reason?: string;
+  work_time?: string;
+  source?: string;
+  phone_country?: string;
   
   // Added columns for admin panel functionality
   total_tasks_completed?: number;
