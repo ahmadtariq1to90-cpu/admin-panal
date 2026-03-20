@@ -37,7 +37,7 @@ export default function Users() {
   const [taskHistory, setTaskHistory] = useState<TaskSubmission[]>([]);
   const [payoutHistory, setPayoutHistory] = useState<Withdrawal[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [pkrRate, setPkrRate] = useState(278);
+  const [pkrRate, setPkrRate] = useState(280);
 
   useEffect(() => {
     fetchUsers();
@@ -583,7 +583,10 @@ export default function Users() {
                       </div>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">Rs</span>
-                        <Input type="number" step="1" className="pl-8" value={((editForm.balance || 0) * pkrRate).toFixed(0)} onChange={e => setEditForm({...editForm, balance: (parseFloat(e.target.value) || 0) / pkrRate})} />
+                        <Input type="number" step="1" className="pl-8" value={((editForm.balance || 0) * pkrRate).toFixed(2)} onChange={e => {
+                          const pkrValue = parseFloat(e.target.value) || 0;
+                          setEditForm({...editForm, balance: Number((pkrValue / pkrRate).toFixed(4))});
+                        }} />
                       </div>
                     </div>
                   </div>
@@ -596,7 +599,10 @@ export default function Users() {
                       </div>
                       <div className="relative">
                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">Rs</span>
-                        <Input type="number" step="1" className="pl-8" value={((editForm.referral_earnings || 0) * pkrRate).toFixed(0)} onChange={e => setEditForm({...editForm, referral_earnings: (parseFloat(e.target.value) || 0) / pkrRate})} />
+                        <Input type="number" step="1" className="pl-8" value={((editForm.referral_earnings || 0) * pkrRate).toFixed(2)} onChange={e => {
+                          const pkrValue = parseFloat(e.target.value) || 0;
+                          setEditForm({...editForm, referral_earnings: Number((pkrValue / pkrRate).toFixed(4))});
+                        }} />
                       </div>
                     </div>
                   </div>

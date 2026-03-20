@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 export default function Settings() {
   const [activeTab, setActiveTab] = useState('general');
   const [referralCommission, setReferralCommission] = useState('10');
-  const [pkrExchangeRate, setPkrExchangeRate] = useState('278');
+  const [pkrExchangeRate, setPkrExchangeRate] = useState('280');
   const [appName, setAppName] = useState('Taskvexa');
   const [supportEmail, setSupportEmail] = useState('support@taskvexa.com');
   const [minWithdrawal, setMinWithdrawal] = useState('5.00');

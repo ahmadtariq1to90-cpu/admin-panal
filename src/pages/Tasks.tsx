@@ -26,7 +26,7 @@ export default function Tasks() {
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [isSavingCategory, setIsSavingCategory] = useState(false);
-  const [pkrRate, setPkrRate] = useState(278);
+  const [pkrRate, setPkrRate] = useState(280);
 
   useEffect(() => {
     fetchData();

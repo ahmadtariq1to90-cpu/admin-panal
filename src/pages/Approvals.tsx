@@ -18,7 +18,7 @@ export default function Approvals() {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [pkrRate, setPkrRate] = useState(278);
+  const [pkrRate, setPkrRate] = useState(280);
 
   useEffect(() => {
     fetchSubmissions();
