@@ -32,15 +32,20 @@ export default function Settings() {
       const { data, error } = await supabase.from('settings').select('*');
       if (error) throw error;
       
-      if (data) {
+      if (data && data.length > 0) {
+        console.log('Settings columns:', Object.keys(data[0]));
         data.forEach(setting => {
-          if (setting.setting_key === 'referral_commission') setReferralCommission(setting.setting_value);
-          if (setting.setting_key === 'pkr_exchange_rate') setPkrExchangeRate(setting.setting_value);
-          if (setting.setting_key === 'app_name') setAppName(setting.setting_value);
-          if (setting.setting_key === 'support_email') setSupportEmail(setting.setting_value);
-          if (setting.setting_key === 'min_withdrawal') setMinWithdrawal(setting.setting_value);
-          if (setting.setting_key === 'supabase_url') setSupabaseUrl(setting.setting_value);
-          if (setting.setting_key === 'supabase_service_key') setSupabaseServiceKey(setting.setting_value);
+          // Handle both setting_key and key
+          const key = setting.setting_key || setting.key || setting.name;
+          const value = setting.setting_value || setting.value || setting.content;
+          
+          if (key === 'referral_commission') setReferralCommission(value);
+          if (key === 'pkr_exchange_rate') setPkrExchangeRate(value);
+          if (key === 'app_name') setAppName(value);
+          if (key === 'support_email') setSupportEmail(value);
+          if (key === 'min_withdrawal') setMinWithdrawal(value);
+          if (key === 'supabase_url') setSupabaseUrl(value);
+          if (key === 'supabase_service_key') setSupabaseServiceKey(value);
         });
       }
     } catch (error) {
@@ -49,19 +54,42 @@ export default function Settings() {
   };
 
   const saveSetting = async (key: string, value: string) => {
-    // Try update first
+    // Try update first with setting_key
     const { error: updateError } = await supabase
       .from('settings')
       .update({ setting_value: value })
       .eq('setting_key', key);
     
     if (updateError) {
-      // If update fails, try insert
-      const { error: insertError } = await supabase
+      // If setting_key update fails, try 'key' column
+      const { error: keyUpdateError } = await supabase
         .from('settings')
-        .insert([{ setting_key: key, setting_value: value }]);
+        .update({ value: value })
+        .eq('key', key);
       
-      if (insertError) throw insertError;
+      if (keyUpdateError) {
+        // If 'key' update fails, try 'name' column
+        const { error: nameUpdateError } = await supabase
+          .from('settings')
+          .update({ content: value })
+          .eq('name', key);
+        
+        if (nameUpdateError) {
+          // If all updates fail, try insert with setting_key
+          const { error: insertError } = await supabase
+            .from('settings')
+            .insert([{ setting_key: key, setting_value: value }]);
+          
+          if (insertError) {
+            // If setting_key insert fails, try 'key' column
+            const { error: keyInsertError } = await supabase
+              .from('settings')
+              .insert([{ key: key, value: value }]);
+            
+            if (keyInsertError) throw keyInsertError;
+          }
+        }
+      }
     }
   };
 

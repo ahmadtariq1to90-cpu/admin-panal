@@ -149,7 +149,6 @@ export default function Tasks() {
                 reward_amount: editingTask.reward,
                 task_link: editingTask.video_url,
                 ad_code: editingTask.prroof_required ? 'true' : 'false',
-                logo: editingTask.logo_url,
               }).eq('id', editingTask.id);
               if (error3) throw error3;
             }
@@ -198,7 +197,6 @@ export default function Tasks() {
                 task_link: editingTask.video_url,
                 ad_code: editingTask.prroof_required ? 'true' : 'false',
                 category: 'General',
-                logo: editingTask.logo_url,
               }]);
               if (error3) throw error3;
             }
@@ -303,8 +301,8 @@ export default function Tasks() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Task Name</TableHead>
                 <TableHead>Logo</TableHead>
+                <TableHead>Task Name</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Reward</TableHead>
                 <TableHead>Status</TableHead>
@@ -314,24 +312,24 @@ export default function Tasks() {
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8">Loading tasks...</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8">Loading tasks...</TableCell></TableRow>
               ) : filteredTasks.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8">No tasks found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8">No tasks found</TableCell></TableRow>
               ) : (
                 filteredTasks.map((task) => (
                   <TableRow key={task.id}>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium text-slate-900 dark:text-slate-100">{task.title}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[250px]">{task.description}</p>
-                      </div>
-                    </TableCell>
                     <TableCell>
                       {task.logo_url ? (
                         <img src={task.logo_url} alt="" className="w-8 h-8 rounded-md object-cover border border-slate-200" />
                       ) : (
                         <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center text-[10px] text-slate-400">No Logo</div>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium text-slate-900 dark:text-slate-100">{task.title}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[250px]">{task.description}</p>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">{task.category?.name || 'Uncategorized'}</Badge>

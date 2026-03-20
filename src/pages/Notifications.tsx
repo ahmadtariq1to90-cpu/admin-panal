@@ -16,6 +16,7 @@ export default function Notifications() {
   const [history, setHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     fetchHistory();
@@ -147,10 +148,32 @@ export default function Notifications() {
     }
   };
 
+  const handleClearAll = async () => {
+    if (!window.confirm('Are you sure you want to clear all notifications? This action cannot be undone.')) return;
+    
+    setClearing(true);
+    const toastId = toast.loading('Clearing all notifications...');
+    try {
+      const { error } = await supabase.from('notifications').delete().neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all
+      if (error) throw error;
+      
+      toast.success('All notifications cleared successfully!', { id: toastId });
+      fetchHistory();
+    } catch (error: any) {
+      console.error('Error clearing notifications:', error);
+      toast.error(error.message || 'Failed to clear notifications.', { id: toastId });
+    } finally {
+      setClearing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Notification Center</h1>
+        <Button variant="destructive" size="sm" onClick={handleClearAll} disabled={clearing || history.length === 0}>
+          Clear All Notifications
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
