@@ -78,6 +78,7 @@ export default function Tasks() {
         ...t,
         reward: t.reward !== undefined ? t.reward : (t.reward_amount || 0),
         video_url: t.video_url !== undefined ? t.video_url : (t.task_link || ''),
+        logo_url: t.logo_url || t.logo || '',
         prroof_required: t.prroof_required !== undefined ? t.prroof_required : (t.ad_code === 'true'),
         status: t.status || 'active'
       }));
@@ -103,6 +104,7 @@ export default function Tasks() {
         status: 'active',
         category_id: categories.length > 0 ? categories[0].id : undefined,
         video_url: '',
+        logo_url: '',
         prroof_required: true
       });
     }
@@ -120,6 +122,7 @@ export default function Tasks() {
           description: editingTask.description,
           instructions: editingTask.instructions,
           category_id: editingTask.category_id || null,
+          logo_url: editingTask.logo_url,
         };
 
         try {
@@ -146,6 +149,7 @@ export default function Tasks() {
                 reward_amount: editingTask.reward,
                 task_link: editingTask.video_url,
                 ad_code: editingTask.prroof_required ? 'true' : 'false',
+                logo: editingTask.logo_url,
               }).eq('id', editingTask.id);
               if (error3) throw error3;
             }
@@ -163,6 +167,7 @@ export default function Tasks() {
           description: editingTask.description,
           instructions: editingTask.instructions,
           category_id: editingTask.category_id || null,
+          logo_url: editingTask.logo_url,
         };
 
         // Try to determine which schema to use
@@ -192,7 +197,8 @@ export default function Tasks() {
                 reward_amount: editingTask.reward,
                 task_link: editingTask.video_url,
                 ad_code: editingTask.prroof_required ? 'true' : 'false',
-                category: 'General'
+                category: 'General',
+                logo: editingTask.logo_url,
               }]);
               if (error3) throw error3;
             }
@@ -298,6 +304,7 @@ export default function Tasks() {
             <TableHeader>
               <TableRow>
                 <TableHead>Task Name</TableHead>
+                <TableHead>Logo</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead>Reward</TableHead>
                 <TableHead>Status</TableHead>
@@ -318,6 +325,13 @@ export default function Tasks() {
                         <p className="font-medium text-slate-900 dark:text-slate-100">{task.title}</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[250px]">{task.description}</p>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {task.logo_url ? (
+                        <img src={task.logo_url} alt="" className="w-8 h-8 rounded-md object-cover border border-slate-200" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-md bg-slate-100 flex items-center justify-center text-[10px] text-slate-400">No Logo</div>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Badge variant="outline">{task.category?.name || 'Uncategorized'}</Badge>
@@ -377,6 +391,11 @@ export default function Tasks() {
               <Input placeholder="e.g., Watch YouTube Video" value={editingTask?.title || ''} onChange={e => setEditingTask({...editingTask, title: e.target.value})} />
             </div>
             
+            <div className="space-y-2 col-span-2">
+              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Task Logo URL</label>
+              <Input placeholder="https://example.com/logo.png" value={editingTask?.logo_url || ''} onChange={e => setEditingTask({...editingTask, logo_url: e.target.value})} />
+            </div>
+
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Category</label>
               <select 

@@ -54,6 +54,7 @@ export type Task = {
   created_at: string;
   instructions: string;
   video_url?: string;
+  logo_url?: string;
   prroof_required?: boolean;
   max_submissions?: number;
   category?: TaskCategory;
@@ -81,6 +82,7 @@ export type Withdrawal = {
   amount: number;
   method: string;
   walleet_address: string;
+  account_details?: string;
   status: 'pending' | 'approved' | 'rejected';
   created_at: string;
   user?: User;

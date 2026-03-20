@@ -48,18 +48,29 @@ export default function Settings() {
     }
   };
 
+  const saveSetting = async (key: string, value: string) => {
+    // Try update first
+    const { error: updateError } = await supabase
+      .from('settings')
+      .update({ setting_value: value })
+      .eq('setting_key', key);
+    
+    if (updateError) {
+      // If update fails, try insert
+      const { error: insertError } = await supabase
+        .from('settings')
+        .insert([{ setting_key: key, setting_value: value }]);
+      
+      if (insertError) throw insertError;
+    }
+  };
+
   const handleSaveApiKeys = async () => {
     setIsSaving(true);
     const toastId = toast.loading('Saving API keys...');
     try {
-      const settingsToSave = [
-        { setting_key: 'supabase_url', setting_value: supabaseUrl },
-        { setting_key: 'supabase_service_key', setting_value: supabaseServiceKey }
-      ];
-
-      const { error } = await supabase.from('settings').upsert(settingsToSave, { onConflict: 'setting_key' });
-      
-      if (error) throw error;
+      await saveSetting('supabase_url', supabaseUrl);
+      await saveSetting('supabase_service_key', supabaseServiceKey);
       toast.success('API keys saved successfully', { id: toastId });
     } catch (error: any) {
       console.error('Error saving API keys:', error);
@@ -73,12 +84,7 @@ export default function Settings() {
     setIsSaving(true);
     const toastId = toast.loading('Saving referral commission...');
     try {
-      const { error } = await supabase.from('settings').upsert({
-        setting_key: 'referral_commission',
-        setting_value: referralCommission
-      }, { onConflict: 'setting_key' });
-      
-      if (error) throw error;
+      await saveSetting('referral_commission', referralCommission);
       toast.success('Referral commission updated successfully', { id: toastId });
     } catch (error: any) {
       console.error('Error saving referral setting:', error);
@@ -92,16 +98,11 @@ export default function Settings() {
     setIsSaving(true);
     const toastId = toast.loading('Saving general settings...');
     try {
-      const settingsToSave = [
-        { setting_key: 'pkr_exchange_rate', setting_value: pkrExchangeRate },
-        { setting_key: 'app_name', setting_value: appName },
-        { setting_key: 'support_email', setting_value: supportEmail },
-        { setting_key: 'min_withdrawal', setting_value: minWithdrawal }
-      ];
-
-      const { error } = await supabase.from('settings').upsert(settingsToSave, { onConflict: 'setting_key' });
+      await saveSetting('pkr_exchange_rate', pkrExchangeRate);
+      await saveSetting('app_name', appName);
+      await saveSetting('support_email', supportEmail);
+      await saveSetting('min_withdrawal', minWithdrawal);
       
-      if (error) throw error;
       toast.success('Settings saved successfully', { id: toastId });
     } catch (error: any) {
       console.error('Error saving general settings:', error);

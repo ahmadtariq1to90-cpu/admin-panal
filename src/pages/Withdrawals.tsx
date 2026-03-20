@@ -267,7 +267,7 @@ export default function Withdrawals() {
                     </TableCell>
                     <TableCell>
                       <span className="font-mono text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
-                        {w.account_details}
+                        {w.account_details || w.walleet_address || 'N/A'}
                       </span>
                     </TableCell>
                     <TableCell className="text-slate-500">
@@ -321,7 +321,7 @@ export default function Withdrawals() {
               </div>
               <div className="flex justify-between items-center py-3 border-b border-slate-200 dark:border-slate-800">
                 <span className="text-slate-500 dark:text-slate-400 font-medium">Account Details</span>
-                <span className="font-mono font-medium text-slate-900 dark:text-white">{selectedWithdrawal.account_details}</span>
+                <span className="font-mono font-medium text-slate-900 dark:text-white">{selectedWithdrawal.account_details || selectedWithdrawal.walleet_address || 'N/A'}</span>
               </div>
               <div className="flex justify-between items-center py-3 border-b border-slate-200 dark:border-slate-800">
                 <span className="text-slate-500 dark:text-slate-400 font-medium">Current Balance</span>
