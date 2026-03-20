@@ -65,10 +65,10 @@ export type TaskSubmission = {
   task_id: string;
   user_id: string;
   status: 'pending' | 'approved' | 'rejected';
-  image_file?: string;
-  video_file?: string;
-  excel_file?: string;
   reward: number;
+  amount: number;
+  message?: string;
+  proof_file?: string;
   submitted_at: string;
   admin_note?: string;
   created_at: string;

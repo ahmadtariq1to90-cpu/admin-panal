@@ -131,7 +131,6 @@ export default function Tasks() {
             reward: editingTask.reward,
             status: editingTask.status,
             video_url: editingTask.video_url,
-            prroof_required: editingTask.prroof_required
           }).eq('id', editingTask.id);
           
           if (error) {
@@ -140,7 +139,6 @@ export default function Tasks() {
               reward: editingTask.reward,
               status: editingTask.status,
               video_url: editingTask.video_url,
-              prroof_required: editingTask.prroof_required
             }).eq('id', editingTask.id);
             
             if (error2) {
@@ -148,7 +146,7 @@ export default function Tasks() {
                 ...updateData,
                 reward_amount: editingTask.reward,
                 task_link: editingTask.video_url,
-                ad_code: editingTask.prroof_required ? 'true' : 'false',
+                ad_code: 'false',
               }).eq('id', editingTask.id);
               if (error3) throw error3;
             }
@@ -177,7 +175,6 @@ export default function Tasks() {
             reward: editingTask.reward,
             status: editingTask.status || 'active',
             video_url: editingTask.video_url,
-            prroof_required: editingTask.prroof_required
           }]);
           
           if (error) {
@@ -187,7 +184,6 @@ export default function Tasks() {
               reward: editingTask.reward,
               status: editingTask.status || 'active',
               video_url: editingTask.video_url,
-              prroof_required: editingTask.prroof_required
             }]);
             
             if (error2) {
@@ -195,7 +191,7 @@ export default function Tasks() {
                 ...insertData,
                 reward_amount: editingTask.reward,
                 task_link: editingTask.video_url,
-                ad_code: editingTask.prroof_required ? 'true' : 'false',
+                ad_code: 'false',
                 category: 'General',
               }]);
               if (error3) throw error3;
@@ -349,7 +345,6 @@ export default function Tasks() {
                     <TableCell>
                       <div className="flex gap-2">
                         {task.video_url && <Video className="w-4 h-4 text-indigo-500" title="Has Video" />}
-                        {task.prroof_required && <Code className="w-4 h-4 text-amber-500" title="Proof Required" />}
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
@@ -448,19 +443,6 @@ export default function Tasks() {
               </label>
               <Input placeholder="https://youtube.com/..." value={editingTask?.video_url || ''} onChange={e => setEditingTask({...editingTask, video_url: e.target.value})} />
               <p className="text-xs text-slate-500">If left blank, the video option will not show in the app.</p>
-            </div>
-
-            <div className="space-y-2 col-span-2 flex items-center gap-2">
-              <input 
-                type="checkbox"
-                id="proofRequired"
-                checked={editingTask?.prroof_required || false}
-                onChange={e => setEditingTask({...editingTask, prroof_required: e.target.checked})}
-                className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <label htmlFor="proofRequired" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                Proof Required (User must submit screenshot/video)
-              </label>
             </div>
           </div>
 

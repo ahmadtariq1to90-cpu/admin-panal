@@ -289,13 +289,13 @@ export default function Approvals() {
                       {new Date((sub as any).created_at || (sub as any).submitted_at || Date.now()).toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      {sub.proof_url?.startsWith('http') ? (
-                        <a href={sub.proof_url} target="_blank" rel="noreferrer" className="text-indigo-500 hover:text-indigo-600 flex items-center gap-1 text-sm font-medium">
-                          View Image <ExternalLink className="w-3 h-3" />
+                      {sub.proof_file?.startsWith('http') ? (
+                        <a href={sub.proof_file} target="_blank" rel="noreferrer" className="text-indigo-500 hover:text-indigo-600 flex items-center gap-1 text-sm font-medium">
+                          View Proof <ExternalLink className="w-3 h-3" />
                         </a>
                       ) : (
-                        <span className="text-sm text-slate-600 dark:text-slate-300 truncate max-w-[150px] block" title={sub.proof_url}>
-                          {sub.proof_url || 'No proof provided'}
+                        <span className="text-sm text-slate-600 dark:text-slate-300 truncate max-w-[150px] block" title={sub.proof_file}>
+                          {sub.proof_file || 'No proof provided'}
                         </span>
                       )}
                     </TableCell>
@@ -336,16 +336,25 @@ export default function Approvals() {
 
             <div>
               <p className="text-sm font-medium text-slate-900 dark:text-white mb-2">Proof Submitted</p>
-              {selectedSubmission.proof_url?.startsWith('http') ? (
+              {selectedSubmission.proof_file?.startsWith('http') ? (
                 <div className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-                  <img src={selectedSubmission.proof_url} alt="Proof" className="w-full h-auto max-h-[300px] object-contain bg-slate-100 dark:bg-slate-900" />
+                  <img src={selectedSubmission.proof_file} alt="Proof" className="w-full h-auto max-h-[300px] object-contain bg-slate-100 dark:bg-slate-900" />
                 </div>
               ) : (
                 <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300 font-mono text-sm">
-                  {selectedSubmission.proof_url || 'No proof provided'}
+                  {selectedSubmission.proof_file || 'No proof provided'}
                 </div>
               )}
             </div>
+
+            {selectedSubmission.message && (
+              <div>
+                <p className="text-sm font-medium text-slate-900 dark:text-white mb-2">User Message</p>
+                <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-700 dark:text-slate-300 text-sm italic">
+                  "{selectedSubmission.message}"
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Rejection Reason (Optional)</label>
