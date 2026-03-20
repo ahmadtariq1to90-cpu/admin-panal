@@ -109,7 +109,13 @@ export default function Approvals() {
       }
 
       if (error) throw error;
-      setSubmissions(data || []);
+      
+      const mappedData = (data || []).map((sub: any) => ({
+        ...sub,
+        amount: Number(sub.amount !== null && sub.amount !== undefined ? sub.amount : (sub.reward || 0))
+      }));
+      
+      setSubmissions(mappedData);
     } catch (error: any) {
       console.error('Error fetching submissions:', error);
       toast.error('Failed to load pending submissions: ' + error.message);
@@ -120,8 +126,9 @@ export default function Approvals() {
 
   const filteredSubmissions = submissions.filter(sub => {
     const userName = sub.user?.name || [sub.user?.first_name, sub.user?.last_name].filter(Boolean).join(' ') || '';
+    const taskTitle = sub.task?.title || '';
     return userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-           sub.task?.title?.toLowerCase().includes(searchTerm.toLowerCase());
+           taskTitle.toLowerCase().includes(searchTerm.toLowerCase());
   });
 
   const handleReview = (sub: TaskSubmission) => {
