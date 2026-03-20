@@ -77,33 +77,24 @@ export default function Dashboard() {
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
       const isoDate = sevenDaysAgo.toISOString();
 
-      // Fetch counts in parallel to avoid slow sequential fallbacks
+      // Fetch counts in parallel
       const [
-        usersRes1, usersRes2,
+        usersRes,
         pendingWithdrawalsRes,
         pendingApprovalsRes,
         payoutsRes,
-        recentUsersRes1, recentUsersRes2,
+        recentUsersRes,
         recentTasksRes,
-        sub1, sub2, sub3, sub4
+        recentSubmissionsRes
       ] = await Promise.all([
         supabase.from('users').select('*', { count: 'exact', head: true }),
-        supabase.from('userrrr').select('*', { count: 'exact', head: true }),
         supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('task_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('withdrawals').select('amount').eq('status', 'approved'),
         supabase.from('users').select('created_at').gte('created_at', isoDate),
-        supabase.from('userrrr').select('created_at').gte('created_at', isoDate),
         supabase.from('task_submissions').select('created_at').gte('created_at', isoDate).eq('status', 'approved'),
-        supabase.from('task_submissions').select('*, task:tasks(title), user:users(name)').order('id', { ascending: false }).limit(5),
-        supabase.from('task_submissions').select('*, task:"tasks table"(title), user:userrrr(name)').order('id', { ascending: false }).limit(5),
-        supabase.from('task_submissions').select('*, task:tasks(title), user:userrrr(name)').order('id', { ascending: false }).limit(5),
-        supabase.from('task_submissions').select('*').order('id', { ascending: false }).limit(5)
+        supabase.from('task_submissions').select('*, task:tasks(title), user:users(first_name, last_name)').order('id', { ascending: false }).limit(5)
       ]);
-
-      const usersRes = usersRes1.error ? usersRes2 : usersRes1;
-      const recentUsersRes = recentUsersRes1.error ? recentUsersRes2 : recentUsersRes1;
-      const recentSubmissionsRes = !sub1.error ? sub1 : (!sub2.error ? sub2 : (!sub3.error ? sub3 : sub4));
 
       const totalPayouts = payoutsRes.data?.reduce((sum, w) => sum + (w.amount || 0), 0) || 0;
 
@@ -117,7 +108,7 @@ export default function Dashboard() {
       // Format recent activity
       const activity = (recentSubmissionsRes.data || []).map((sub: any) => ({
         id: sub.id,
-        user: sub.user ? `${sub.user.name || [sub.user.first_name, sub.user.last_name].filter(Boolean).join(' ') || 'Unknown User'}`.trim() : 'Unknown User',
+        user: sub.user ? `${[sub.user.first_name, sub.user.last_name].filter(Boolean).join(' ') || 'Unknown User'}`.trim() : 'Unknown User',
         action: 'completed task',
         target: sub.task?.title || 'Unknown Task',
         time: new Date(sub.created_at || sub.submitted_at || Date.now()).toLocaleString()

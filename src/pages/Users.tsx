@@ -58,14 +58,7 @@ export default function Users() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      let { data, error } = await supabase.from('users').select('*').order('id', { ascending: false });
-      
-      if (error) {
-        console.warn('Failed to fetch from users table, trying userrrr:', error);
-        const res = await supabase.from('userrrr').select('*').order('id', { ascending: false });
-        data = res.data;
-        error = res.error;
-      }
+      const { data, error } = await supabase.from('users').select('*').order('id', { ascending: false });
       
       if (error) throw error;
       setUsers(data || []);
@@ -112,7 +105,7 @@ export default function Users() {
     setIsSaving(true);
     const toastId = toast.loading('Saving user details...');
     try {
-      let { error } = await supabase
+      const { error } = await supabase
         .from('users')
         .update({
           name: editForm.name,
@@ -145,43 +138,6 @@ export default function Users() {
           avatar_url: editForm.avatar_url,
         })
         .eq('id', selectedUser.id);
-
-      if (error) {
-        const res = await supabase
-          .from('userrrr')
-          .update({
-            name: editForm.name,
-            first_name: editForm.first_name,
-            last_name: editForm.last_name,
-            email: editForm.email,
-            phone: editForm.phone,
-            phone_number: editForm.phone_number,
-            date_of_birth: editForm.date_of_birth,
-            birthday: editForm.birthday,
-            country: editForm.country,
-            city: editForm.city,
-            zip_code: editForm.zip_code,
-            zipcode: editForm.zipcode,
-            postal_code: editForm.postal_code,
-            referral_code: editForm.referral_code,
-            referral_by: editForm.referral_by,
-            gender: editForm.gender,
-            occupation: editForm.occupation,
-            reason: editForm.reason,
-            work_time: editForm.work_time,
-            source: editForm.source,
-            phone_country: editForm.phone_country,
-            balance: editForm.balance,
-            referral_earnings: editForm.referral_earnings,
-            'profile-image': editForm['profile-image'],
-            profile_image: editForm.profile_image,
-            profile_image_url: editForm.profile_image_url,
-            profile_pic: editForm.profile_pic,
-            avatar_url: editForm.avatar_url,
-          })
-          .eq('id', selectedUser.id);
-        error = res.error;
-      }
 
       if (error) throw error;
 
@@ -263,11 +219,7 @@ export default function Users() {
         console.warn('Supabase Service Role Key not found in settings. User will only be deleted from database, not Auth.');
       }
 
-      let { error } = await supabase.from('users').delete().eq('id', userToDelete.id);
-      if (error) {
-        const res = await supabase.from('userrrr').delete().eq('id', userToDelete.id);
-        error = res.error;
-      }
+      const { error } = await supabase.from('users').delete().eq('id', userToDelete.id);
       if (error) throw error;
       setUsers(users.filter(u => u.id !== userToDelete.id));
       toast.success('User deleted successfully', { id: toastId });

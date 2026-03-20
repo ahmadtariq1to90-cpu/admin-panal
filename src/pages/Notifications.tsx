@@ -37,18 +37,12 @@ export default function Notifications() {
       const userIds = [...new Set(notifications.map(n => n.user_id).filter(Boolean))];
 
       if (userIds.length > 0) {
-        // Fetch users from both tables
         const { data: usersData } = await supabase
           .from('users')
-          .select('id, name, first_name, last_name, email')
+          .select('id, first_name, last_name, email')
           .in('id', userIds);
 
-        const { data: userrrrData } = await supabase
-          .from('userrrr')
-          .select('id, name, first_name, last_name, email')
-          .in('id', userIds);
-
-        const allUsers = [...(usersData || []), ...(userrrrData || [])];
+        const allUsers = usersData || [];
         const userMap = new Map(allUsers.map(u => [u.id, u]));
 
         const enrichedNotifications = notifications.map(n => ({
@@ -76,23 +70,12 @@ export default function Notifications() {
         // Find user by email or ID
         let targetUserId = userId;
         if (userId.includes('@')) {
-          let { data: userData, error: userError } = await supabase
+          const { data: userData, error: userError } = await supabase
             .from('users')
             .select('id')
             .eq('email', userId)
             .limit(1)
             .maybeSingle();
-            
-          if (userError || !userData) {
-            const res = await supabase
-              .from('userrrr')
-              .select('id')
-              .eq('email', userId)
-              .limit(1)
-              .maybeSingle();
-            userData = res.data;
-            userError = res.error;
-          }
 
           if (userError || !userData) {
             throw new Error('User not found with that email.');
@@ -113,12 +96,7 @@ export default function Notifications() {
         // Send to all users
         // Note: In a production app with many users, this should be done via a backend edge function
         // to avoid timeout and payload limits.
-        let { data: users, error: usersError } = await supabase.from('users').select('id');
-        if (usersError || !users) {
-          const res = await supabase.from('userrrr').select('id');
-          users = res.data;
-          usersError = res.error;
-        }
+        const { data: users, error: usersError } = await supabase.from('users').select('id');
         if (usersError || !users) throw usersError || new Error('Failed to fetch users');
         
         const notifications = users.map(u => ({

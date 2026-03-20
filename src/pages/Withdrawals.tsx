@@ -39,7 +39,7 @@ export default function Withdrawals() {
   const fetchWithdrawals = async () => {
     setLoading(true);
     try {
-      let { data, error } = await supabase
+      const { data, error } = await supabase
         .from('withdrawals')
         .select(`
           *,
@@ -47,30 +47,6 @@ export default function Withdrawals() {
         `)
         .eq('status', 'pending')
         .order('id', { ascending: false });
-
-      if (error) {
-        const res = await supabase
-          .from('withdrawals')
-          .select(`
-            *,
-            user:userrrr(*)
-          `)
-          .eq('status', 'pending')
-          .order('id', { ascending: false });
-          
-        if (res.error) {
-          const fallbackRes = await supabase
-            .from('withdrawals')
-            .select('*')
-            .eq('status', 'pending')
-            .order('id', { ascending: false });
-          data = fallbackRes.data;
-          error = fallbackRes.error;
-        } else {
-          data = res.data;
-          error = null;
-        }
-      }
 
       if (error) throw error;
       setWithdrawals(data || []);
@@ -109,18 +85,10 @@ export default function Withdrawals() {
       if (selectedWithdrawal.user) {
         const newTotalWithdraw = (selectedWithdrawal.user.total_withdraw || 0) + selectedWithdrawal.amount;
         
-        let { error: userError } = await supabase
+        const { error: userError } = await supabase
           .from('users')
           .update({ total_withdraw: newTotalWithdraw })
           .eq('id', selectedWithdrawal.user_id);
-          
-        if (userError) {
-          const res = await supabase
-            .from('userrrr')
-            .update({ total_withdraw: newTotalWithdraw })
-            .eq('id', selectedWithdrawal.user_id);
-          userError = res.error;
-        }
           
         if (userError) throw userError;
       }
@@ -160,18 +128,10 @@ export default function Withdrawals() {
       if (selectedWithdrawal.user) {
         const newBalance = (selectedWithdrawal.user.balance || 0) + selectedWithdrawal.amount;
         
-        let { error: userError } = await supabase
+        const { error: userError } = await supabase
           .from('users')
           .update({ balance: newBalance })
           .eq('id', selectedWithdrawal.user_id);
-          
-        if (userError) {
-          const res = await supabase
-            .from('userrrr')
-            .update({ balance: newBalance })
-            .eq('id', selectedWithdrawal.user_id);
-          userError = res.error;
-        }
           
         if (userError) throw userError;
       }

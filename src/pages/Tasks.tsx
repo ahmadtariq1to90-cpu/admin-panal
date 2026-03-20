@@ -65,10 +65,6 @@ export default function Tasks() {
       if (tasksRes.error) {
         console.warn('Failed to fetch tasks with categories, falling back to simple fetch:', tasksRes.error);
         tasksRes = await supabase.from('tasks').select('*').order('id', { ascending: false });
-        
-        if (tasksRes.error) {
-          tasksRes = await supabase.from('tasks table').select('*').order('id', { ascending: false });
-        }
       }
       
       if (tasksRes.error) throw tasksRes.error;
@@ -133,24 +129,7 @@ export default function Tasks() {
             video_url: editingTask.video_url,
           }).eq('id', editingTask.id);
           
-          if (error) {
-            const { error: error2 } = await supabase.from('tasks table').update({
-              ...updateData,
-              reward: editingTask.reward,
-              status: editingTask.status,
-              video_url: editingTask.video_url,
-            }).eq('id', editingTask.id);
-            
-            if (error2) {
-              const { error: error3 } = await supabase.from('tasks').update({
-                ...updateData,
-                reward_amount: editingTask.reward,
-                task_link: editingTask.video_url,
-                ad_code: 'false',
-              }).eq('id', editingTask.id);
-              if (error3) throw error3;
-            }
-          }
+          if (error) throw error;
         } catch (e) {
           console.error('Update error details:', e);
           throw e;
@@ -158,49 +137,20 @@ export default function Tasks() {
       } else {
         // Insert
         const id = uuidv4();
-        let insertData: any = {
+        const insertData: any = {
           id,
           title: editingTask.title,
           description: editingTask.description,
           instructions: editingTask.instructions,
           category_id: editingTask.category_id || null,
           logo_url: editingTask.logo_url,
+          reward: editingTask.reward,
+          status: editingTask.status || 'active',
+          video_url: editingTask.video_url,
         };
 
-        // Try to determine which schema to use
-        try {
-          // Try schema 1 (tasks table)
-          const { error } = await supabase.from('tasks').insert([{
-            ...insertData,
-            reward: editingTask.reward,
-            status: editingTask.status || 'active',
-            video_url: editingTask.video_url,
-          }]);
-          
-          if (error) {
-            // If it fails, try schema 2 (tasks table)
-            const { error: error2 } = await supabase.from('tasks table').insert([{
-              ...insertData,
-              reward: editingTask.reward,
-              status: editingTask.status || 'active',
-              video_url: editingTask.video_url,
-            }]);
-            
-            if (error2) {
-              const { error: error3 } = await supabase.from('tasks').insert([{
-                ...insertData,
-                reward_amount: editingTask.reward,
-                task_link: editingTask.video_url,
-                ad_code: 'false',
-                category: 'General',
-              }]);
-              if (error3) throw error3;
-            }
-          }
-        } catch (e) {
-          console.error('Insert error details:', e);
-          throw e;
-        }
+        const { error } = await supabase.from('tasks').insert([insertData]);
+        if (error) throw error;
       }
       await fetchData();
       setIsTaskModalOpen(false);
@@ -249,10 +199,7 @@ export default function Tasks() {
     const newStatus = task.status === 'active' ? 'paused' : 'active';
     try {
       const { error } = await supabase.from('tasks').update({ status: newStatus }).eq('id', task.id);
-      if (error) {
-        const { error: error2 } = await supabase.from('tasks table').update({ status: newStatus }).eq('id', task.id);
-        if (error2) throw error2;
-      }
+      if (error) throw error;
       await fetchData();
     } catch (error) {
       console.error('Error toggling task status:', error);
