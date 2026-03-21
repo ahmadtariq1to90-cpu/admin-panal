@@ -97,7 +97,7 @@ export default function Withdrawals() {
       await supabase.from('notifications').insert({
         user_id: selectedWithdrawal.user_id,
         title: 'Withdrawal Approved',
-        message: `Your withdrawal request for $${selectedWithdrawal.amount.toFixed(2)} via ${selectedWithdrawal.method} has been processed and paid.`,
+        message: `Your withdrawal request for $${(selectedWithdrawal.amount || 0).toFixed(2)} via ${selectedWithdrawal.method} has been processed and paid.`,
         is_read: false
       });
 
@@ -140,7 +140,7 @@ export default function Withdrawals() {
       await supabase.from('notifications').insert({
         user_id: selectedWithdrawal.user_id,
         title: 'Withdrawal Rejected',
-        message: `Your withdrawal request for $${selectedWithdrawal.amount.toFixed(2)} was rejected. The amount has been refunded to your balance. ${rejectReason ? `Reason: ${rejectReason}` : ''}`,
+        message: `Your withdrawal request for $${(selectedWithdrawal.amount || 0).toFixed(2)} was rejected. The amount has been refunded to your balance. ${rejectReason ? `Reason: ${rejectReason}` : ''}`,
         is_read: false
       });
 

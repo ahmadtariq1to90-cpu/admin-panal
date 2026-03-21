@@ -33,19 +33,29 @@ export default function Settings() {
       if (error) throw error;
       
       if (data && data.length > 0) {
-        console.log('Settings columns:', Object.keys(data[0]));
+        // Check if we have a single row with columns (preferred)
+        const row1 = data.find(r => r.id === '1') || data[0];
+        
+        if (row1.min_withdrawal !== undefined) setMinWithdrawal(String(row1.min_withdrawal));
+        if (row1.pkr_exchange_rate !== undefined) setPkrExchangeRate(String(row1.pkr_exchange_rate));
+        if (row1.referral_commission !== undefined) setReferralCommission(String(row1.referral_commission));
+        if (row1.app_name !== undefined) setAppName(row1.app_name);
+        if (row1.support_email !== undefined) setSupportEmail(row1.support_email);
+        if (row1.supabase_url !== undefined) setSupabaseUrl(row1.supabase_url);
+        if (row1.supabase_service_key !== undefined) setSupabaseServiceKey(row1.supabase_service_key);
+
+        // Also handle key-value pairs if they exist (legacy/fallback)
         data.forEach(setting => {
-          // Handle both setting_key and key
           const key = setting.setting_key || setting.key || setting.name;
           const value = setting.setting_value || setting.value || setting.content;
           
-          if (key === 'referral_commission') setReferralCommission(value);
-          if (key === 'pkr_exchange_rate') setPkrExchangeRate(value);
-          if (key === 'app_name') setAppName(value);
-          if (key === 'support_email') setSupportEmail(value);
-          if (key === 'min_withdrawal') setMinWithdrawal(value);
-          if (key === 'supabase_url') setSupabaseUrl(value);
-          if (key === 'supabase_service_key') setSupabaseServiceKey(value);
+          if (key === 'referral_commission' && row1.referral_commission === undefined) setReferralCommission(value);
+          if (key === 'pkr_exchange_rate' && row1.pkr_exchange_rate === undefined) setPkrExchangeRate(value);
+          if (key === 'app_name' && row1.app_name === undefined) setAppName(value);
+          if (key === 'support_email' && row1.support_email === undefined) setSupportEmail(value);
+          if (key === 'min_withdrawal' && row1.min_withdrawal === undefined) setMinWithdrawal(value);
+          if (key === 'supabase_url' && row1.supabase_url === undefined) setSupabaseUrl(value);
+          if (key === 'supabase_service_key' && row1.supabase_service_key === undefined) setSupabaseServiceKey(value);
         });
       }
     } catch (error) {
@@ -54,6 +64,20 @@ export default function Settings() {
   };
 
   const saveSetting = async (key: string, value: string) => {
+    // 1. Try to update the single row (id='1') with the key as a column name
+    const updatePayload: any = {};
+    const numericKeys = ['min_withdrawal', 'pkr_exchange_rate', 'referral_commission'];
+    updatePayload[key] = numericKeys.includes(key) ? parseFloat(value) : value;
+
+    const { error: columnUpdateError } = await supabase
+      .from('settings')
+      .update(updatePayload)
+      .eq('id', '1');
+    
+    // If successful, we're done
+    if (!columnUpdateError) return;
+
+    // 2. Fallback to key-value approach if column update failed
     // Try update first with setting_key
     const { error: updateError } = await supabase
       .from('settings')

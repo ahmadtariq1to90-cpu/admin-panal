@@ -46,9 +46,10 @@ export default function Users() {
 
   const fetchPkrRate = async () => {
     try {
-      const { data } = await supabase.from('settings').select('*').eq('setting_key', 'pkr_exchange_rate').limit(1).maybeSingle();
-      if (data && data.setting_value) {
-        setPkrRate(parseFloat(data.setting_value));
+      const { data } = await supabase.from('settings').select('*').limit(1).maybeSingle();
+      if (data) {
+        if (data.pkr_exchange_rate) setPkrRate(parseFloat(data.pkr_exchange_rate));
+        else if (data.setting_key === 'pkr_exchange_rate' && data.setting_value) setPkrRate(parseFloat(data.setting_value));
       }
     } catch (e) {
       console.error('Error fetching PKR rate', e);
@@ -647,7 +648,7 @@ export default function Users() {
                                 {th.status}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-emerald-600">${th.amount.toFixed(2)}</TableCell>
+                            <TableCell className="text-emerald-600">${(th.amount || 0).toFixed(2)}</TableCell>
                             <TableCell className="text-slate-500 text-sm">{new Date((th as any).created_at || (th as any).submitted_at || Date.now()).toLocaleDateString()}</TableCell>
                           </TableRow>
                         ))}
@@ -679,7 +680,7 @@ export default function Users() {
                       <TableBody>
                         {payoutHistory.map(ph => (
                           <TableRow key={ph.id}>
-                            <TableCell className="font-bold text-emerald-600">${ph.amount.toFixed(2)}</TableCell>
+                            <TableCell className="font-bold text-emerald-600">${(ph.amount || 0).toFixed(2)}</TableCell>
                             <TableCell className="uppercase text-xs font-bold">{ph.method}</TableCell>
                             <TableCell>
                               <Badge variant={ph.status === 'approved' ? 'success' : ph.status === 'rejected' ? 'destructive' : 'warning'}>

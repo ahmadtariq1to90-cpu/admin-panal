@@ -109,7 +109,7 @@ export default function Approvals() {
       await supabase.from('notifications').insert({
         user_id: selectedSubmission.user_id,
         title: 'Task Approved',
-        message: `Your submission for "${selectedSubmission.task?.title}" was approved. You earned $${selectedSubmission.amount.toFixed(2)}!`,
+        message: `Your submission for "${selectedSubmission.task?.title}" was approved. You earned $${(selectedSubmission.amount || 0).toFixed(2)}!`,
         is_read: false
       });
 

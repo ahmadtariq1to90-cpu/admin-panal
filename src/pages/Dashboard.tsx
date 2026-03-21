@@ -29,9 +29,10 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchPkrRate = async () => {
       try {
-        const { data } = await supabase.from('settings').select('*').eq('setting_key', 'pkr_exchange_rate').limit(1).maybeSingle();
-        if (data && data.setting_value) {
-          setPkrRate(parseFloat(data.setting_value));
+        const { data } = await supabase.from('settings').select('*').limit(1).maybeSingle();
+        if (data) {
+          if (data.pkr_exchange_rate) setPkrRate(parseFloat(data.pkr_exchange_rate));
+          else if (data.setting_key === 'pkr_exchange_rate' && data.setting_value) setPkrRate(parseFloat(data.setting_value));
         }
       } catch (e) {
         console.error('Error fetching PKR rate', e);
