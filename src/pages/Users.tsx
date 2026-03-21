@@ -11,7 +11,15 @@ import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
 const getUserName = (user: Partial<User>) => user.name || [user.first_name, user.last_name].filter(Boolean).join(' ') || 'Unknown User';
-const getUserImage = (user: Partial<User>) => user.avatar_url || user['profile-image'] || user.profile_image || user.profile_image_url || user.profile_pic;
+const getUserImage = (user: Partial<User>) => {
+  // Prioritize base64 images as they are likely the most recent uploads from the app
+  const fields = [user.profile_image, user.avatar_url, user['profile-image'], user.profile_image_url, user.profile_pic];
+  const base64Field = fields.find(f => f?.startsWith('data:image'));
+  if (base64Field) return base64Field;
+  
+  // Otherwise pick the first non-empty field
+  return fields.find(f => !!f);
+};
 const getUserPhone = (user: Partial<User>) => user.phone || user.phone_number;
 const getUserBirthday = (user: Partial<User>) => user.date_of_birth || user.birthday;
 
@@ -42,6 +50,18 @@ export default function Users() {
   useEffect(() => {
     fetchUsers();
     fetchPkrRate();
+
+    // Set up real-time subscription for users table
+    const usersSubscription = supabase
+      .channel('public:users_admin')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
+        fetchUsers();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(usersSubscription);
+    };
   }, []);
 
   const fetchPkrRate = async () => {
@@ -421,7 +441,10 @@ export default function Users() {
                     <div className="flex items-center gap-2">
                       {getUserImage(editForm)?.startsWith('data:image') ? (
                         <div className="flex-1 flex items-center justify-between bg-slate-100 dark:bg-slate-800 px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700">
-                          <span className="text-sm text-slate-500 truncate">Base64 Image Uploaded</span>
+                          <div className="flex items-center gap-2">
+                            <img src={getUserImage(editForm)} className="w-8 h-8 rounded-full object-cover" alt="Preview" />
+                            <span className="text-xs text-slate-500 truncate max-w-[150px]">Base64 Image Uploaded</span>
+                          </div>
                           <Button 
                             variant="ghost" 
                             size="sm" 
@@ -648,7 +671,7 @@ export default function Users() {
                                 {th.status}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-emerald-600">${(th.amount || 0).toFixed(2)}</TableCell>
+                            <TableCell className="text-emerald-600">${Number(th.amount || 0).toFixed(2)}</TableCell>
                             <TableCell className="text-slate-500 text-sm">{new Date((th as any).created_at || (th as any).submitted_at || Date.now()).toLocaleDateString()}</TableCell>
                           </TableRow>
                         ))}
@@ -680,7 +703,7 @@ export default function Users() {
                       <TableBody>
                         {payoutHistory.map(ph => (
                           <TableRow key={ph.id}>
-                            <TableCell className="font-bold text-emerald-600">${(ph.amount || 0).toFixed(2)}</TableCell>
+                            <TableCell className="font-bold text-emerald-600">${Number(ph.amount || 0).toFixed(2)}</TableCell>
                             <TableCell className="uppercase text-xs font-bold">{ph.method}</TableCell>
                             <TableCell>
                               <Badge variant={ph.status === 'approved' ? 'success' : ph.status === 'rejected' ? 'destructive' : 'warning'}>
