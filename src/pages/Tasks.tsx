@@ -35,9 +35,10 @@ export default function Tasks() {
 
   const fetchPkrRate = async () => {
     try {
-      const { data } = await supabase.from('settings').select('*').eq('setting_key', 'pkr_exchange_rate').limit(1).maybeSingle();
-      if (data && data.setting_value) {
-        setPkrRate(parseFloat(data.setting_value));
+      const { data } = await supabase.from('settings').select('*').limit(1).maybeSingle();
+      if (data) {
+        if (data.pkr_exchange_rate) setPkrRate(Number(data.pkr_exchange_rate));
+        else if (data.setting_key === 'pkr_exchange_rate' && data.setting_value) setPkrRate(Number(data.setting_value));
       }
     } catch (e) {
       console.error('Error fetching PKR rate', e);
@@ -278,8 +279,8 @@ export default function Tasks() {
                       <Badge variant="outline">{task.category?.name || 'Uncategorized'}</Badge>
                     </TableCell>
                     <TableCell className="font-medium text-emerald-600 dark:text-emerald-400">
-                      ${(task.reward || 0).toFixed(2)}
-                      <div className="text-[10px] text-slate-500 font-normal">Rs {((task.reward || 0) * pkrRate).toFixed(0)}</div>
+                      ${Number(task.reward || 0).toFixed(2)}
+                      <div className="text-[10px] text-slate-500 font-normal">Rs {(Number(task.reward || 0) * pkrRate).toFixed(0)}</div>
                     </TableCell>
                     <TableCell>
                       <Badge variant={
@@ -371,7 +372,7 @@ export default function Tasks() {
             <div className="space-y-2 col-span-2">
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Reward Amount ($)</label>
               <Input type="number" step="0.01" placeholder="0.50" value={editingTask?.reward || ''} onChange={e => setEditingTask({...editingTask, reward: parseFloat(e.target.value)})} />
-              <p className="text-[10px] text-slate-500">Rs {((editingTask?.reward || 0) * pkrRate).toFixed(0)}</p>
+              <p className="text-[10px] text-slate-500">Rs {(Number(editingTask?.reward || 0) * pkrRate).toFixed(0)}</p>
             </div>
 
             <div className="space-y-2 col-span-2">

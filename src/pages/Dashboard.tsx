@@ -31,8 +31,8 @@ export default function Dashboard() {
       try {
         const { data } = await supabase.from('settings').select('*').limit(1).maybeSingle();
         if (data) {
-          if (data.pkr_exchange_rate) setPkrRate(parseFloat(data.pkr_exchange_rate));
-          else if (data.setting_key === 'pkr_exchange_rate' && data.setting_value) setPkrRate(parseFloat(data.setting_value));
+          if (data.pkr_exchange_rate) setPkrRate(Number(data.pkr_exchange_rate));
+          else if (data.setting_key === 'pkr_exchange_rate' && data.setting_value) setPkrRate(Number(data.setting_value));
         }
       } catch (e) {
         console.error('Error fetching PKR rate', e);
@@ -181,8 +181,8 @@ export default function Dashboard() {
         />
         <StatCard 
           title="Total Payouts" 
-          value={loading ? '...' : `$${stats.totalPayouts.toFixed(2)}`} 
-          subValue={loading ? '' : `Rs ${(stats.totalPayouts * pkrRate).toFixed(0)}`}
+          value={loading ? '...' : `$${Number(stats.totalPayouts || 0).toFixed(2)}`} 
+          subValue={loading ? '' : `Rs ${(Number(stats.totalPayouts || 0) * pkrRate).toFixed(0)}`}
           trend="+0%" 
           icon={DollarSign} 
           color="text-emerald-500" 
