@@ -64,6 +64,44 @@ export default function Users() {
     };
   }, []);
 
+  const getAdminClient = async () => {
+    try {
+      const { data: settingsData } = await supabase.from('settings').select('*');
+      
+      let serviceRoleKey = '';
+      let supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+      if (settingsData && settingsData.length > 0) {
+        // Check column structure (id='1' row)
+        const row1 = settingsData.find(r => r.id === '1') || settingsData[0];
+        serviceRoleKey = row1.supabase_service_key || '';
+        
+        // Fallback to key-value structure
+        if (!serviceRoleKey) {
+          const serviceKeySetting = settingsData.find(s => 
+            (s.setting_key === 'supabase_service_key') || 
+            (s.key === 'supabase_service_key') || 
+            (s.name === 'supabase_service_key')
+          );
+          serviceRoleKey = serviceKeySetting?.setting_value || serviceKeySetting?.value || serviceKeySetting?.content || '';
+        }
+      }
+
+      if (serviceRoleKey && supabaseUrl) {
+        const { createClient } = await import('@supabase/supabase-js');
+        return createClient(supabaseUrl, serviceRoleKey, {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        });
+      }
+    } catch (e) {
+      console.error('Error creating admin client:', e);
+    }
+    return null;
+  };
+
   const fetchPkrRate = async () => {
     try {
       const { data } = await supabase.from('settings').select('*').limit(1).maybeSingle();
@@ -193,12 +231,25 @@ export default function Users() {
 
     const toastId = toast.loading(`${isBanned ? 'Unbanning' : 'Banning'} user...`);
     try {
+      // 1. Update database status
       const { error } = await supabase
         .from('users')
         .update({ status: newStatus })
         .eq('id', user.id);
 
       if (error) throw error;
+
+      // 2. Update Supabase Auth status if possible
+      const adminClient = await getAdminClient();
+      if (adminClient) {
+        const { error: authError } = await adminClient.auth.admin.updateUserById(
+          user.id,
+          { ban_duration: isBanned ? 'none' : '8760h' } // 8760h = 1 year ban
+        );
+        if (authError) {
+          console.warn('Failed to update Auth ban status:', authError);
+        }
+      }
 
       setUsers(users.map(u => u.id === user.id ? { ...u, status: newStatus } : u));
       toast.success(`User successfully ${isBanned ? 'unbanned' : 'banned'}.`, { id: toastId });
@@ -210,40 +261,33 @@ export default function Users() {
 
   const handleDeleteUserConfirm = async () => {
     if (!userToDelete) return;
-    const toastId = toast.loading('Deleting user...');
+    const toastId = toast.loading('Deleting user and all related data...');
     try {
-      // Fetch service role key from settings
-      const { data: settingsData } = await supabase
-        .from('settings')
-        .select('setting_value')
-        .eq('setting_key', 'supabase_service_key')
-        .single();
+      // 1. Delete related data first to avoid foreign key constraints
+      await Promise.all([
+        supabase.from('task_submissions').delete().eq('user_id', userToDelete.id),
+        supabase.from('withdrawals').delete().eq('user_id', userToDelete.id),
+        supabase.from('notifications').delete().eq('user_id', userToDelete.id)
+      ]);
 
-      const serviceRoleKey = settingsData?.setting_value;
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-      if (serviceRoleKey && supabaseUrl) {
-        // Use admin client to delete user from auth
-        const { createClient } = await import('@supabase/supabase-js');
-        const adminClient = createClient(supabaseUrl, serviceRoleKey, {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false
-          }
-        });
-        
+      // 2. Try to delete from Supabase Auth using admin client
+      const adminClient = await getAdminClient();
+      if (adminClient) {
         const { error: authError } = await adminClient.auth.admin.deleteUser(userToDelete.id);
         if (authError) {
           console.warn('Failed to delete user from Auth, proceeding with database deletion:', authError);
         }
       } else {
-        console.warn('Supabase Service Role Key not found in settings. User will only be deleted from database, not Auth.');
+        console.warn('Supabase Service Role Key not found. User will only be deleted from database, not Auth.');
       }
 
+      // 3. Delete from users table
       const { error } = await supabase.from('users').delete().eq('id', userToDelete.id);
       if (error) throw error;
+
+      // 4. Update UI immediately
       setUsers(users.filter(u => u.id !== userToDelete.id));
-      toast.success('User deleted successfully', { id: toastId });
+      toast.success('User and all related data deleted successfully', { id: toastId });
       setUserToDelete(null);
     } catch (error: any) {
       console.error('Error deleting user:', error);
