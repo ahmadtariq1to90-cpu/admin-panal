@@ -76,8 +76,9 @@ export default function Users() {
         // Check column structure (id='1' row)
         const row1 = settingsData.find(r => r.id === '1') || settingsData[0];
         serviceRoleKey = row1.supabase_service_key || '';
+        if (row1.supabase_url) supabaseUrl = row1.supabase_url;
         
-        // Fallback to key-value structure
+        // Fallback to key-value structure for service key
         if (!serviceRoleKey) {
           const serviceKeySetting = settingsData.find(s => 
             (s.setting_key === 'supabase_service_key') || 
@@ -85,6 +86,17 @@ export default function Users() {
             (s.name === 'supabase_service_key')
           );
           serviceRoleKey = serviceKeySetting?.setting_value || serviceKeySetting?.value || serviceKeySetting?.content || '';
+        }
+
+        // Fallback to key-value structure for URL
+        if (!supabaseUrl || supabaseUrl === import.meta.env.VITE_SUPABASE_URL) {
+          const urlSetting = settingsData.find(s => 
+            (s.setting_key === 'supabase_url') || 
+            (s.key === 'supabase_url') || 
+            (s.name === 'supabase_url')
+          );
+          const urlVal = urlSetting?.setting_value || urlSetting?.value || urlSetting?.content;
+          if (urlVal) supabaseUrl = urlVal;
         }
       }
 

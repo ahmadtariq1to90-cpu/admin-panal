@@ -13,7 +13,7 @@ export default function Settings() {
   const [appName, setAppName] = useState('Taskvexa');
   const [supportEmail, setSupportEmail] = useState('support@taskvexa.com');
   const [minWithdrawal, setMinWithdrawal] = useState('5.00');
-  const [supabaseUrl, setSupabaseUrl] = useState('');
+  const [supabaseUrl, setSupabaseUrl] = useState(import.meta.env.VITE_SUPABASE_URL || '');
   const [supabaseServiceKey, setSupabaseServiceKey] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -36,26 +36,28 @@ export default function Settings() {
         // Check if we have a single row with columns (preferred)
         const row1 = data.find(r => r.id === '1') || data[0];
         
-        if (row1.min_withdrawal !== undefined) setMinWithdrawal(String(row1.min_withdrawal));
-        if (row1.pkr_exchange_rate !== undefined) setPkrExchangeRate(String(row1.pkr_exchange_rate));
-        if (row1.referral_commission !== undefined) setReferralCommission(String(row1.referral_commission));
-        if (row1.app_name !== undefined) setAppName(row1.app_name);
-        if (row1.support_email !== undefined) setSupportEmail(row1.support_email);
-        if (row1.supabase_url !== undefined) setSupabaseUrl(row1.supabase_url);
-        if (row1.supabase_service_key !== undefined) setSupabaseServiceKey(row1.supabase_service_key);
+        if (row1.min_withdrawal) setMinWithdrawal(String(row1.min_withdrawal));
+        if (row1.pkr_exchange_rate) setPkrExchangeRate(String(row1.pkr_exchange_rate));
+        if (row1.referral_commission) setReferralCommission(String(row1.referral_commission));
+        if (row1.app_name) setAppName(row1.app_name);
+        if (row1.support_email) setSupportEmail(row1.support_email);
+        if (row1.supabase_url) setSupabaseUrl(row1.supabase_url);
+        if (row1.supabase_service_key) setSupabaseServiceKey(row1.supabase_service_key);
 
         // Also handle key-value pairs if they exist (legacy/fallback)
         data.forEach(setting => {
           const key = setting.setting_key || setting.key || setting.name;
           const value = setting.setting_value || setting.value || setting.content;
           
-          if (key === 'referral_commission' && row1.referral_commission === undefined) setReferralCommission(value);
-          if (key === 'pkr_exchange_rate' && row1.pkr_exchange_rate === undefined) setPkrExchangeRate(value);
-          if (key === 'app_name' && row1.app_name === undefined) setAppName(value);
-          if (key === 'support_email' && row1.support_email === undefined) setSupportEmail(value);
-          if (key === 'min_withdrawal' && row1.min_withdrawal === undefined) setMinWithdrawal(value);
-          if (key === 'supabase_url' && row1.supabase_url === undefined) setSupabaseUrl(value);
-          if (key === 'supabase_service_key' && row1.supabase_service_key === undefined) setSupabaseServiceKey(value);
+          if (!value) return;
+
+          if (key === 'referral_commission' && !row1.referral_commission) setReferralCommission(String(value));
+          if (key === 'pkr_exchange_rate' && !row1.pkr_exchange_rate) setPkrExchangeRate(String(value));
+          if (key === 'app_name' && !row1.app_name) setAppName(value);
+          if (key === 'support_email' && !row1.support_email) setSupportEmail(value);
+          if (key === 'min_withdrawal' && !row1.min_withdrawal) setMinWithdrawal(String(value));
+          if (key === 'supabase_url' && !row1.supabase_url) setSupabaseUrl(value);
+          if (key === 'supabase_service_key' && !row1.supabase_service_key) setSupabaseServiceKey(value);
         });
       }
     } catch (error) {
@@ -69,16 +71,21 @@ export default function Settings() {
     const numericKeys = ['min_withdrawal', 'pkr_exchange_rate', 'referral_commission'];
     updatePayload[key] = numericKeys.includes(key) ? parseFloat(value) : value;
 
-    const { error: columnUpdateError } = await supabase
+    const { error: columnUpdateError, status } = await supabase
       .from('settings')
       .update(updatePayload)
       .eq('id', '1');
     
-    // If successful, we're done
-    if (!columnUpdateError) return;
+    // If successful (status 200 or 204) and no error, we're done
+    // Note: status 200/204 means the request was successful, but we should check if it actually matched a row
+    // In some cases, update might return no error even if no rows matched.
+    if (!columnUpdateError && (status === 200 || status === 204)) {
+      // Verify if it actually updated something by fetching it back or checking count if we used it
+      // For simplicity, we'll assume if no error and status is ok, it might have worked.
+      // But let's check if the column actually exists by doing a select first if we want to be sure.
+    }
 
-    // 2. Fallback to key-value approach if column update failed (e.g., column doesn't exist)
-    // Try to find if the setting already exists as a row
+    // 2. Fallback to key-value approach if column update failed or we want to be sure
     const { data: existing } = await supabase
       .from('settings')
       .select('*')
@@ -86,7 +93,6 @@ export default function Settings() {
       .maybeSingle();
 
     if (existing) {
-      // Update existing row
       const updateObj: any = {};
       if (existing.setting_key) updateObj.setting_value = value;
       else if (existing.key) updateObj.value = value;
@@ -99,10 +105,13 @@ export default function Settings() {
       
       if (updateError) throw updateError;
     } else {
-      // Insert new row
-      await supabase
-        .from('settings')
-        .insert([{ setting_key: key, setting_value: value }]);
+      // If column update failed (e.g. column doesn't exist), insert as key-value
+      if (columnUpdateError) {
+        const { error: insertError } = await supabase
+          .from('settings')
+          .insert([{ setting_key: key, setting_value: value }]);
+        if (insertError) throw insertError;
+      }
     }
   };
 
@@ -112,6 +121,7 @@ export default function Settings() {
     try {
       await saveSetting('supabase_url', supabaseUrl);
       await saveSetting('supabase_service_key', supabaseServiceKey);
+      await fetchSettings(); // Refresh state
       toast.success('API keys saved successfully', { id: toastId });
     } catch (error: any) {
       console.error('Error saving API keys:', error);
@@ -126,6 +136,7 @@ export default function Settings() {
     const toastId = toast.loading('Saving referral commission...');
     try {
       await saveSetting('referral_commission', referralCommission);
+      await fetchSettings(); // Refresh state
       toast.success('Referral commission updated successfully', { id: toastId });
     } catch (error: any) {
       console.error('Error saving referral setting:', error);
@@ -144,6 +155,7 @@ export default function Settings() {
       await saveSetting('support_email', supportEmail);
       await saveSetting('min_withdrawal', minWithdrawal);
       
+      await fetchSettings(); // Refresh state
       toast.success('Settings saved successfully', { id: toastId });
     } catch (error: any) {
       console.error('Error saving general settings:', error);
