@@ -48,12 +48,9 @@ export default function Users() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [pkrRate, setPkrRate] = useState(280);
 
-  const [isServiceKeyConfigured, setIsServiceKeyConfigured] = useState(true);
-
   useEffect(() => {
     fetchUsers();
     fetchPkrRate();
-    checkServiceKey();
 
     // Set up real-time subscription for users table
     const usersSubscription = supabase
@@ -67,30 +64,6 @@ export default function Users() {
       supabase.removeChannel(usersSubscription);
     };
   }, []);
-
-  const checkServiceKey = async () => {
-    try {
-      const { data: settingsData } = await supabase.from('settings').select('*');
-      if (settingsData && settingsData.length > 0) {
-        const row1 = settingsData.find(r => r.id === '1') || settingsData[0];
-        let key = row1.supabase_service_key || '';
-        if (!key) {
-          const serviceKeySetting = settingsData.find(s => 
-            (s.setting_key === 'supabase_service_key') || 
-            (s.key === 'supabase_service_key') || 
-            (s.name === 'supabase_service_key')
-          );
-          key = serviceKeySetting?.setting_value || serviceKeySetting?.value || serviceKeySetting?.content || '';
-        }
-        setIsServiceKeyConfigured(!!key);
-      } else {
-        setIsServiceKeyConfigured(false);
-      }
-    } catch (e) {
-      console.error('Error checking service key:', e);
-      setIsServiceKeyConfigured(false);
-    }
-  };
 
   const getAdminClient = async () => {
     try {
@@ -347,16 +320,6 @@ export default function Users() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">User Management</h1>
       </div>
-
-      {!isServiceKeyConfigured && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3 text-amber-800">
-          <ShieldOff className="w-5 h-5 shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-bold">Supabase Service Role Key Missing</p>
-            <p>To properly delete users from Authentication (auth.users), please add your <b>Supabase Service Role Key</b> in the <Link to="/settings" className="underline font-medium">Settings</Link> page. Without this, users will only be deleted from the database.</p>
-          </div>
-        </div>
-      )}
 
       <Card>
         <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

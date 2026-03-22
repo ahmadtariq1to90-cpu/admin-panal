@@ -77,43 +77,32 @@ export default function Settings() {
     // If successful, we're done
     if (!columnUpdateError) return;
 
-    // 2. Fallback to key-value approach if column update failed
-    // Try update first with setting_key
-    const { error: updateError } = await supabase
+    // 2. Fallback to key-value approach if column update failed (e.g., column doesn't exist)
+    // Try to find if the setting already exists as a row
+    const { data: existing } = await supabase
       .from('settings')
-      .update({ setting_value: value })
-      .eq('setting_key', key);
-    
-    if (updateError) {
-      // If setting_key update fails, try 'key' column
-      const { error: keyUpdateError } = await supabase
-        .from('settings')
-        .update({ value: value })
-        .eq('key', key);
+      .select('*')
+      .or(`setting_key.eq.${key},key.eq.${key},name.eq.${key}`)
+      .maybeSingle();
+
+    if (existing) {
+      // Update existing row
+      const updateObj: any = {};
+      if (existing.setting_key) updateObj.setting_value = value;
+      else if (existing.key) updateObj.value = value;
+      else if (existing.name) updateObj.content = value;
       
-      if (keyUpdateError) {
-        // If 'key' update fails, try 'name' column
-        const { error: nameUpdateError } = await supabase
-          .from('settings')
-          .update({ content: value })
-          .eq('name', key);
-        
-        if (nameUpdateError) {
-          // If all updates fail, try insert with setting_key
-          const { error: insertError } = await supabase
-            .from('settings')
-            .insert([{ setting_key: key, setting_value: value }]);
-          
-          if (insertError) {
-            // If setting_key insert fails, try 'key' column
-            const { error: keyInsertError } = await supabase
-              .from('settings')
-              .insert([{ key: key, value: value }]);
-            
-            if (keyInsertError) throw keyInsertError;
-          }
-        }
-      }
+      const { error: updateError } = await supabase
+        .from('settings')
+        .update(updateObj)
+        .eq('id', existing.id);
+      
+      if (updateError) throw updateError;
+    } else {
+      // Insert new row
+      await supabase
+        .from('settings')
+        .insert([{ setting_key: key, setting_value: value }]);
     }
   };
 
