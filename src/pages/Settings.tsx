@@ -60,32 +60,31 @@ export default function Settings() {
           if (key === 'supabase_service_key' && !row1.supabase_service_key) setSupabaseServiceKey(value);
         });
       }
+
+      // Hardcoded fallback provided by user
+      setSupabaseServiceKey(prev => prev || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6YWZuZmhhdnVnZWNsb21lYXl3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE0OTYwMCwiZXhwIjoyMDg4NzI1NjAwfQ.fBPqn0aKZFkgVffr9EizlgZxSVh0ZwBNUS1J842xFQ8');
     } catch (error) {
       console.error('Error fetching settings:', error);
     }
   };
 
   const saveSetting = async (key: string, value: string) => {
-    // 1. Try to update the single row (id='1') with the key as a column name
-    const updatePayload: any = {};
+    // 1. Try to upsert the single row (id='1') with the key as a column name
+    const updatePayload: any = { id: '1' };
     const numericKeys = ['min_withdrawal', 'pkr_exchange_rate', 'referral_commission'];
     updatePayload[key] = numericKeys.includes(key) ? parseFloat(value) : value;
 
-    const { error: columnUpdateError, status } = await supabase
+    const { error: upsertError } = await supabase
       .from('settings')
-      .update(updatePayload)
-      .eq('id', '1');
+      .upsert(updatePayload, { onConflict: 'id' });
     
-    // If successful (status 200 or 204) and no error, we're done
-    // Note: status 200/204 means the request was successful, but we should check if it actually matched a row
-    // In some cases, update might return no error even if no rows matched.
-    if (!columnUpdateError && (status === 200 || status === 204)) {
-      // Verify if it actually updated something by fetching it back or checking count if we used it
-      // For simplicity, we'll assume if no error and status is ok, it might have worked.
-      // But let's check if the column actually exists by doing a select first if we want to be sure.
-    }
+    // If successful, we're done
+    if (!upsertError) return;
 
-    // 2. Fallback to key-value approach if column update failed or we want to be sure
+    console.warn('Upsert to id=1 failed, falling back to key-value:', upsertError);
+
+    // 2. Fallback to key-value approach
+    // First, check if the setting already exists as a row
     const { data: existing } = await supabase
       .from('settings')
       .select('*')
@@ -93,6 +92,7 @@ export default function Settings() {
       .maybeSingle();
 
     if (existing) {
+      // Update existing row by its specific ID
       const updateObj: any = {};
       if (existing.setting_key) updateObj.setting_value = value;
       else if (existing.key) updateObj.value = value;
@@ -105,13 +105,12 @@ export default function Settings() {
       
       if (updateError) throw updateError;
     } else {
-      // If column update failed (e.g. column doesn't exist), insert as key-value
-      if (columnUpdateError) {
-        const { error: insertError } = await supabase
-          .from('settings')
-          .insert([{ setting_key: key, setting_value: value }]);
-        if (insertError) throw insertError;
-      }
+      // Insert new row
+      const { error: insertError } = await supabase
+        .from('settings')
+        .insert([{ setting_key: key, setting_value: value }]);
+      
+      if (insertError) throw insertError;
     }
   };
 

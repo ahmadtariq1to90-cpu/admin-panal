@@ -100,6 +100,11 @@ export default function Users() {
         }
       }
 
+      // Hardcoded fallback provided by user to ensure deletion works
+      if (!serviceRoleKey) {
+        serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6YWZuZmhhdnVnZWNsb21lYXl3Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzE0OTYwMCwiZXhwIjoyMDg4NzI1NjAwfQ.fBPqn0aKZFkgVffr9EizlgZxSVh0ZwBNUS1J842xFQ8';
+      }
+
       if (serviceRoleKey && supabaseUrl) {
         const { createClient } = await import('@supabase/supabase-js');
         return createClient(supabaseUrl, serviceRoleKey, {
