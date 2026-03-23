@@ -1,187 +1,109 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/contexts/AuthContext';
+import React, { useState } from 'react';
+import { supabase } from '../lib/supabase';
+import { LogIn, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
+import { motion } from 'motion/react';
 
 export default function Login() {
-  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
-
-  useEffect(() => {
-    if (user && isAdmin) {
-      navigate('/');
-    }
-  }, [user, isAdmin, navigate]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-    setError('');
-    
+    setLoading(true);
+    setError(null);
+
     try {
-      let authData, authError;
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      if (isSignUp) {
-        const { data, error } = await supabase.auth.signUp({
-          email,
-          password,
-        });
-        authData = data;
-        authError = error;
-      } else {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        authData = data;
-        authError = error;
-      }
-
-      if (authError) throw authError;
-
-      if (isSignUp && !authData.session) {
-        setError('Sign up successful! Please check your email to confirm your account.');
-        setIsLoading(false);
-        return;
-      }
-
-      // Check if user is admin
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', authData.user!.id);
-
-      if (userError) throw userError;
-
-      let isAdmin = userData?.some(user => user.role === 'admin');
-      
-      // Fallback for the owner email
-      if (!isAdmin && authData.user!.email === 'ahmadtariq1to90@gmail.com') {
-        isAdmin = true;
-        // Try to insert or update the owner as admin in the database
-        try {
-          await supabase.from('users').upsert({
-            id: authData.user!.id,
-            email: authData.user!.email,
-            role: 'admin',
-            first_name: 'Admin',
-            status: 'active'
-          }, { onConflict: 'id' });
-        } catch (upsertError) {
-          console.error('Failed to upsert admin user:', upsertError);
-        }
-      }
-
-      if (!isAdmin) {
-        await supabase.auth.signOut();
-        throw new Error('Unauthorized access. Admin privileges required.');
-      }
-
-      navigate('/');
-    } catch (err: any) {
+      if (error) throw error;
+    } catch (err: unknown) {
       console.error('Login error:', err);
-      setError(err.message || 'Failed to authenticate. Please check your credentials.');
+      setError(err instanceof Error ? err.message : 'Failed to login. Please check your credentials.');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100"
+      >
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white mb-2">
-            Taskvexa <span className="text-indigo-500">Admin</span>
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400">
-            {isSignUp ? 'Create a new admin account' : 'Sign in to access the control panel'}
-          </p>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4 shadow-lg shadow-blue-200">
+            <LogIn className="w-8 h-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-bold text-slate-900">Admin Portal</h1>
+          <p className="text-slate-500 mt-2">Sign in to manage your platform</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-8">
+        <form onSubmit={handleLogin} className="space-y-6">
           {error && (
-            <div className={`mb-6 p-4 text-sm rounded-lg border ${error.includes('successful') ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' : 'bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border-rose-200 dark:border-rose-800'}`}>
-              {error}
+            <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-3 rounded-xl flex items-start gap-3 text-sm animate-shake">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <p>{error}</p>
             </div>
           )}
-          
-          <form onSubmit={handleLogin} className="space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Email Address</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <Input 
-                  type="email" 
-                  placeholder="admin@taskvexa.com" 
-                  className="pl-10 h-12"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700 block">Email Address</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                placeholder="admin@example.com"
+              />
             </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Password</label>
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <Input 
-                  type="password" 
-                  placeholder="••••••••" 
-                  className="pl-10 h-12"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-
-            <Button 
-              type="submit" 
-              className="w-full h-12 text-base font-medium" 
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  {isSignUp ? 'Creating account...' : 'Signing in...'}
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  {isSignUp ? 'Sign Up' : 'Sign In'} <ArrowRight className="w-4 h-4" />
-                </span>
-              )}
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <button
-              type="button"
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setError('');
-              }}
-              className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 font-medium"
-            >
-              {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
-            </button>
           </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-slate-700 block">Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-3 rounded-xl shadow-lg shadow-blue-200 transition-all flex items-center justify-center gap-2"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              'Sign In'
+            )}
+          </button>
+        </form>
+
+        <div className="mt-8 pt-6 border-t border-slate-100 text-center">
+          <p className="text-sm text-slate-500">
+            Forgot your password? Contact system administrator.
+          </p>
         </div>
-        
-        <p className="text-center text-sm text-slate-500 mt-8">
-          Secure admin portal. Unauthorized access is strictly prohibited.
-        </p>
-      </div>
+      </motion.div>
     </div>
   );
 }

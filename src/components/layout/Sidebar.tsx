@@ -1,77 +1,83 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
   LayoutDashboard, 
   Users, 
   CheckSquare, 
-  ClipboardCheck, 
-  CreditCard, 
+  Wallet, 
   Bell, 
-  Settings,
+  Settings, 
   LogOut,
+  Menu,
   X
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { supabase } from '@/lib/supabase';
+import { NavLink } from 'react-router-dom';
+import { cn } from '../../lib/utils';
 
-const navItems = [
-  { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { name: 'Users', path: '/users', icon: Users },
-  { name: 'Tasks', path: '/tasks', icon: CheckSquare },
-  { name: 'Approvals', path: '/approvals', icon: ClipboardCheck },
-  { name: 'Withdrawals', path: '/withdrawals', icon: CreditCard },
-  { name: 'Notifications', path: '/notifications', icon: Bell },
-  { name: 'Settings', path: '/settings', icon: Settings },
-];
+export default function Sidebar() {
+  const { signOut } = useAuth();
+  const [isOpen, setIsOpen] = React.useState(true);
 
-export function Sidebar({ onClose }: { onClose?: () => void }) {
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate('/login');
-  };
+  const navItems = [
+    { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+    { to: '/users', icon: Users, label: 'Users' },
+    { to: '/approvals', icon: CheckSquare, label: 'Approvals' },
+    { to: '/withdrawals', icon: Wallet, label: 'Withdrawals' },
+    { to: '/tasks', icon: LayoutDashboard, label: 'Tasks' },
+    { to: '/notifications', icon: Bell, label: 'Notifications' },
+    { to: '/settings', icon: Settings, label: 'Settings' },
+  ];
 
   return (
-    <div className="flex flex-col w-64 bg-slate-900 border-r border-slate-800 text-slate-300 h-screen sticky top-0">
-      <div className="flex items-center justify-between h-16 border-b border-slate-800 px-6">
-        <span className="text-xl font-bold text-white tracking-tight">Taskvexa <span className="text-indigo-400">Admin</span></span>
-        {onClose && (
-          <button onClick={onClose} className="lg:hidden p-1 text-slate-400 hover:text-white">
-            <X className="w-5 h-5" />
-          </button>
-        )}
-      </div>
-      
-      <div className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.name}
-            to={item.path}
-            onClick={onClose}
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                isActive 
-                  ? "bg-indigo-500/10 text-indigo-400" 
-                  : "hover:bg-slate-800 hover:text-white"
-              )
-            }
-          >
-            <item.icon className="w-5 h-5" />
-            {item.name}
-          </NavLink>
-        ))}
-      </div>
+    <>
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md"
+      >
+        {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+      </button>
 
-      <div className="p-4 border-t border-slate-800">
-        <button 
-          onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2 w-full rounded-md text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-        >
-          <LogOut className="w-5 h-5" />
-          Logout
-        </button>
-      </div>
-    </div>
+      <aside className={cn(
+        "fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 flex flex-col transition-transform duration-300 ease-in-out",
+        !isOpen && "-translate-x-full lg:translate-x-0"
+      )}>
+        <div className="p-6 border-b border-slate-200">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+              <LayoutDashboard className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-slate-900">Admin Panel</span>
+          </div>
+        </div>
+
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {navItems.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={({ isActive }) => cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium",
+                isActive 
+                  ? "bg-blue-50 text-blue-600" 
+                  : "text-slate-600 hover:bg-slate-50"
+              )}
+            >
+              <item.icon className="w-5 h-5" />
+              {item.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-slate-200">
+          <button 
+            onClick={() => signOut()}
+            className="w-full flex items-center gap-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium"
+          >
+            <LogOut className="w-5 h-5" />
+            Sign Out
+          </button>
+        </div>
+      </aside>
+    </>
   );
 }

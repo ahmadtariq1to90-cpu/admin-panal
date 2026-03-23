@@ -1,5 +1,5 @@
 {
-  "name": "admin panal",
-  "description": "",
+  "name": "Admin Panel",
+  "description": "A comprehensive admin panel for managing users, approvals, and withdrawals.",
   "requestFramePermissions": []
 }

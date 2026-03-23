@@ -1,277 +1,52 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Users, CreditCard, ClipboardCheck, DollarSign, TrendingUp, ArrowRight } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { supabase } from '@/lib/supabase';
+import { Users, CheckSquare, Wallet, LayoutDashboard } from 'lucide-react';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    pendingWithdrawals: 0,
-    pendingApprovals: 0,
-    totalPayouts: 0,
-  });
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [pkrRate, setPkrRate] = useState(278);
-
-  const [chartData, setChartData] = useState<any[]>([
-    { name: 'Mon', users: 0, tasks: 0 },
-    { name: 'Tue', users: 0, tasks: 0 },
-    { name: 'Wed', users: 0, tasks: 0 },
-    { name: 'Thu', users: 0, tasks: 0 },
-    { name: 'Fri', users: 0, tasks: 0 },
-    { name: 'Sat', users: 0, tasks: 0 },
-    { name: 'Sun', users: 0, tasks: 0 },
-  ]);
-
-  useEffect(() => {
-    const fetchPkrRate = async () => {
-      try {
-        const { data } = await supabase.from('settings').select('*').limit(1).maybeSingle();
-        if (data) {
-          if (data.pkr_exchange_rate) setPkrRate(Number(data.pkr_exchange_rate));
-          else if (data.setting_key === 'pkr_exchange_rate' && data.setting_value) setPkrRate(Number(data.setting_value));
-        }
-      } catch (e) {
-        console.error('Error fetching PKR rate', e);
-      }
-    };
-
-    fetchDashboardData();
-    fetchPkrRate();
-
-    // Set up real-time subscriptions
-    const usersSubscription = supabase
-      .channel('public:users')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, () => {
-        fetchDashboardData();
-      })
-      .subscribe();
-
-    const submissionsSubscription = supabase
-      .channel('public:task_submissions')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'task_submissions' }, () => {
-        fetchDashboardData();
-      })
-      .subscribe();
-
-    const withdrawalsSubscription = supabase
-      .channel('public:withdrawals')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'withdrawals' }, () => {
-        fetchDashboardData();
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(usersSubscription);
-      supabase.removeChannel(submissionsSubscription);
-      supabase.removeChannel(withdrawalsSubscription);
-    };
-  }, []);
-
-  const fetchDashboardData = async () => {
-    setLoading(true);
-    try {
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const isoDate = sevenDaysAgo.toISOString();
-
-      // Fetch counts in parallel
-      const [
-        usersRes,
-        pendingWithdrawalsRes,
-        pendingApprovalsRes,
-        payoutsRes,
-        recentUsersRes,
-        recentTasksRes,
-        recentSubmissionsRes
-      ] = await Promise.all([
-        supabase.from('users').select('*', { count: 'exact', head: true }),
-        supabase.from('withdrawals').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('task_submissions').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
-        supabase.from('withdrawals').select('amount').eq('status', 'approved'),
-        supabase.from('users').select('created_at').gte('created_at', isoDate),
-        supabase.from('task_submissions').select('created_at').gte('created_at', isoDate).eq('status', 'approved'),
-        supabase.from('task_submissions').select('*, task:tasks(title), user:users(first_name, last_name)').order('id', { ascending: false }).limit(5)
-      ]);
-
-      const totalPayouts = payoutsRes.data?.reduce((sum, w) => sum + (w.amount || 0), 0) || 0;
-
-      setStats({
-        totalUsers: usersRes.count || 0,
-        pendingWithdrawals: pendingWithdrawalsRes.count || 0,
-        pendingApprovals: pendingApprovalsRes.count || 0,
-        totalPayouts: totalPayouts,
-      });
-
-      // Format recent activity
-      const activity = (recentSubmissionsRes.data || []).map((sub: any) => ({
-        id: sub.id,
-        user: sub.user ? `${[sub.user.first_name, sub.user.last_name].filter(Boolean).join(' ') || 'Unknown User'}`.trim() : 'Unknown User',
-        action: 'completed task',
-        target: sub.task?.title || 'Unknown Task',
-        time: new Date(sub.created_at || sub.submitted_at || Date.now()).toLocaleString()
-      }));
-      setRecentActivity(activity);
-
-      // Process chart data
-      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      const newChartData = [];
-      
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date();
-        d.setDate(d.getDate() - i);
-        const dayName = days[d.getDay()];
-        const dateStr = d.toISOString().split('T')[0];
-        
-        const usersCount = (recentUsersRes.data || []).filter(u => u.created_at?.startsWith(dateStr)).length;
-        const tasksCount = (recentTasksRes.data || []).filter(t => t.created_at?.startsWith(dateStr)).length;
-        
-        newChartData.push({
-          name: dayName,
-          users: usersCount,
-          tasks: tasksCount
-        });
-      }
-      setChartData(newChartData);
-
-    } catch (error) {
-      console.error('Error fetching dashboard data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Dashboard Overview</h1>
-        <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-          <span>Last updated: Just now</span>
+    <div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {[
+          { label: 'Total Users', value: '1,284', change: '+12%', icon: Users, color: 'blue' },
+          { label: 'Pending Approvals', value: '42', change: '-5%', icon: CheckSquare, color: 'orange' },
+          { label: 'Total Withdrawals', value: '$12,450', change: '+18%', icon: Wallet, color: 'green' },
+          { label: 'Active Tasks', value: '156', change: '+3%', icon: LayoutDashboard, color: 'purple' },
+        ].map((stat, i) => (
+          <div key={i} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className={`w-12 h-12 bg-${stat.color}-50 rounded-xl flex items-center justify-center`}>
+                <stat.icon className={`w-6 h-6 text-${stat.color}-600`} />
+              </div>
+              <span className={`text-xs font-medium px-2 py-1 rounded-full ${stat.change.startsWith('+') ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
+                {stat.change}
+              </span>
+            </div>
+            <p className="text-sm text-slate-500 font-medium">{stat.label}</p>
+            <h3 className="text-2xl font-bold text-slate-900 mt-1">{stat.value}</h3>
+          </div>
+        ))}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+          <h3 className="font-bold text-slate-900">Recent Activity</h3>
+          <button className="text-sm text-blue-600 font-medium hover:underline">View All</button>
         </div>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title="Total Users" 
-          value={loading ? '...' : stats.totalUsers.toLocaleString()} 
-          trend="+0%" 
-          icon={Users} 
-          color="text-indigo-500" 
-          bg="bg-indigo-500/10" 
-        />
-        <StatCard 
-          title="Pending Withdrawals" 
-          value={loading ? '...' : stats.pendingWithdrawals.toLocaleString()} 
-          trend="Needs action" 
-          icon={CreditCard} 
-          color="text-rose-500" 
-          bg="bg-rose-500/10" 
-        />
-        <StatCard 
-          title="Pending Approvals" 
-          value={loading ? '...' : stats.pendingApprovals.toLocaleString()} 
-          trend="Needs action" 
-          icon={ClipboardCheck} 
-          color="text-amber-500" 
-          bg="bg-amber-500/10" 
-        />
-        <StatCard 
-          title="Total Payouts" 
-          value={loading ? '...' : `$${Number(stats.totalPayouts || 0).toFixed(2)}`} 
-          subValue={loading ? '' : `Rs ${(Number(stats.totalPayouts || 0) * pkrRate).toFixed(0)}`}
-          trend="+0%" 
-          icon={DollarSign} 
-          color="text-emerald-500" 
-          bg="bg-emerald-500/10" 
-        />
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Chart */}
-        <Card className="col-span-1 lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Activity Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#334155" opacity={0.2} />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
-                  <Tooltip 
-                    cursor={{ fill: '#334155', opacity: 0.1 }}
-                    contentStyle={{ backgroundColor: '#1e293b', border: 'none', borderRadius: '8px', color: '#f8fafc' }}
-                  />
-                  <Bar dataKey="users" fill="#6366f1" radius={[4, 4, 0, 0]} name="Active Users" />
-                  <Bar dataKey="tasks" fill="#10b981" radius={[4, 4, 0, 0]} name="Tasks Completed" />
-                </BarChart>
-              </ResponsiveContainer>
+        <div className="divide-y divide-slate-100">
+          {[1, 2, 3, 4, 5].map((_, i) => (
+            <div key={i} className="p-6 flex items-center justify-between hover:bg-slate-50 transition-colors">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center">
+                  <Users className="w-5 h-5 text-slate-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-slate-900">New user registration</p>
+                  <p className="text-xs text-slate-500">User user{i}@example.com joined the platform</p>
+                </div>
+              </div>
+              <span className="text-xs text-slate-400">2 hours ago</span>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Recent Activity */}
-        <Card className="col-span-1">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Recent Activity</CardTitle>
-            <Link to="/approvals" className="text-sm text-indigo-500 hover:text-indigo-600 font-medium flex items-center">
-              View all <ArrowRight className="w-4 h-4 ml-1" />
-            </Link>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {loading ? (
-                <p className="text-sm text-slate-500">Loading activity...</p>
-              ) : recentActivity.length === 0 ? (
-                <p className="text-sm text-slate-500">No recent activity found.</p>
-              ) : (
-                recentActivity.map((activity) => (
-                  <div key={activity.id} className="flex items-start gap-4">
-                    <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-600 dark:text-slate-300 font-medium text-xs shrink-0">
-                      {activity.user.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-sm text-slate-900 dark:text-slate-200">
-                        <span className="font-medium">{activity.user}</span> {activity.action} <span className="font-medium">{activity.target}</span>
-                      </p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{activity.time}</p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       </div>
     </div>
-  );
-}
-
-function StatCard({ title, value, subValue, trend, icon: Icon, color, bg }: any) {
-  return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{title}</p>
-            <h4 className="text-3xl font-bold text-slate-900 dark:text-white mt-2">{value}</h4>
-            {subValue && <p className="text-xs text-slate-500 mt-1">{subValue}</p>}
-          </div>
-          <div className={`w-12 h-12 rounded-full ${bg} flex items-center justify-center`}>
-            <Icon className={`w-6 h-6 ${color}`} />
-          </div>
-        </div>
-        <div className="mt-4 flex items-center text-sm">
-          <TrendingUp className={`w-4 h-4 mr-1 ${trend.includes('+') ? 'text-emerald-500' : 'text-amber-500'}`} />
-          <span className={trend.includes('+') ? 'text-emerald-500 font-medium' : 'text-amber-500 font-medium'}>{trend}</span>
-          <span className="text-slate-500 dark:text-slate-400 ml-2">vs last week</span>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
