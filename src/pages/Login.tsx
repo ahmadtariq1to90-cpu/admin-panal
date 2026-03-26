@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { LogIn, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -8,6 +10,14 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,6 +31,8 @@ export default function Login() {
       });
 
       if (error) throw error;
+      
+      // Navigation will be handled by useEffect above when auth state changes
     } catch (err: unknown) {
       console.error('Login error:', err);
       let message = 'Failed to login. Please check your credentials.';
