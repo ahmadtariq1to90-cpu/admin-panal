@@ -9,7 +9,7 @@ interface Withdrawal {
   status: 'pending' | 'completed' | 'failed';
   payment_method: string;
   created_at: string;
-  profiles?: {
+  users?: {
     full_name: string;
     email: string;
   };
@@ -31,10 +31,10 @@ export default function Withdrawals() {
       
       // Try fetching with join first
       const { data, error } = await supabase
-        .from('withdrawals')
+        .from('withdraw_requests')
         .select(`
           *,
-          profiles:user_id (full_name, email)
+          users:user_id (full_name, email)
         `)
         .order('created_at', { ascending: false });
 
@@ -42,7 +42,7 @@ export default function Withdrawals() {
         console.warn('Join query failed, trying simple query:', error.message);
         // Fallback to simple query if join fails (e.g. missing relationship)
         const { data: simpleData, error: simpleError } = await supabase
-          .from('withdrawals')
+          .from('withdraw_requests')
           .select('*')
           .order('created_at', { ascending: false });
         
@@ -59,7 +59,7 @@ export default function Withdrawals() {
       } else if (typeof err === 'object' && err !== null && 'message' in err) {
         message = (err as { message: string }).message;
       }
-      setError(`${message}. Make sure the 'withdrawals' table exists in your Supabase project.`);
+      setError(`${message}. Make sure the 'withdraw_requests' table exists in your Supabase project.`);
     } finally {
       setLoading(false);
     }
@@ -140,8 +140,8 @@ export default function Withdrawals() {
                   <tr key={withdrawal.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                       <div>
-                        <p className="text-sm font-bold text-slate-900">{withdrawal.profiles?.full_name || 'Unknown'}</p>
-                        <p className="text-xs text-slate-500">{withdrawal.profiles?.email || 'No email'}</p>
+                        <p className="text-sm font-bold text-slate-900">{withdrawal.users?.full_name || 'Unknown'}</p>
+                        <p className="text-xs text-slate-500">{withdrawal.users?.email || 'No email'}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { Users, CheckSquare, Wallet, LayoutDashboard, Loader2 } from 'lucide-react';
+import { Users, CheckSquare, Wallet, LayoutDashboard, Loader2, Share2, Tags } from 'lucide-react';
 
 interface UserProfile {
   id: string;
@@ -15,6 +15,8 @@ export default function Dashboard() {
     { label: 'Pending Approvals', value: '0', change: '+0%', icon: CheckSquare, color: 'orange' },
     { label: 'Total Withdrawals', value: '$0.00', change: '+0%', icon: Wallet, color: 'green' },
     { label: 'Active Tasks', value: '0', change: '+0%', icon: LayoutDashboard, color: 'purple' },
+    { label: 'Total Referrals', value: '0', change: '+0%', icon: Share2, color: 'pink' },
+    { label: 'Categories', value: '0', change: '+0%', icon: Tags, color: 'indigo' },
   ]);
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +30,7 @@ export default function Dashboard() {
   const fetchRecentUsers = async () => {
     try {
       const { data } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .order('created_at', { ascending: false })
         .limit(5);
@@ -83,12 +85,16 @@ export default function Dashboard() {
         usersCount,
         approvalsCount,
         totalWithdrawals,
-        tasksCount
+        tasksCount,
+        referralsCount,
+        categoriesCount
       ] = await Promise.all([
-        fetchCount('profiles'),
-        fetchCount('approvals', { column: 'status', value: 'pending' }),
+        fetchCount('users'),
+        fetchCount('task_submissions', { column: 'status', value: 'pending' }),
         fetchSum('withdrawals', 'amount', { column: 'status', value: 'completed' }),
-        fetchCount('tasks', { column: 'status', value: 'active' })
+        fetchCount('tasks', { column: 'status', value: 'active' }),
+        fetchCount('referral'),
+        fetchCount('task_categories')
       ]);
 
       setStats([
@@ -96,6 +102,8 @@ export default function Dashboard() {
         { label: 'Pending Approvals', value: approvalsCount.toString(), change: '+5%', icon: CheckSquare, color: 'orange' },
         { label: 'Total Withdrawals', value: `$${totalWithdrawals.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, change: '+8%', icon: Wallet, color: 'green' },
         { label: 'Active Tasks', value: tasksCount.toString(), change: '+3%', icon: LayoutDashboard, color: 'purple' },
+        { label: 'Total Referrals', value: referralsCount.toString(), change: '+15%', icon: Share2, color: 'pink' },
+        { label: 'Categories', value: categoriesCount.toString(), change: '+2%', icon: Tags, color: 'indigo' },
       ]);
     } catch (err) {
       console.error('Error fetching dashboard stats:', err);
@@ -114,7 +122,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
         {stats.map((stat, i) => (
           <div key={i} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 group">
             <div className="flex items-center justify-between mb-4">

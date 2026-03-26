@@ -9,7 +9,7 @@ interface Notification {
   message: string;
   user_id: string | null; // null means broadcast to all
   created_at: string;
-  profiles?: {
+  users?: {
     full_name: string;
   };
 }
@@ -33,7 +33,7 @@ export default function Notifications() {
         .from('notifications')
         .select(`
           *,
-          profiles:user_id (full_name)
+          users:user_id (full_name)
         `)
         .order('created_at', { ascending: false });
 
@@ -207,7 +207,7 @@ export default function Notifications() {
                       {n.user_id && (
                         <span className="flex items-center gap-1">
                           <User className="w-3 h-3" />
-                          To: {n.profiles?.full_name || n.user_id}
+                          To: {n.users?.full_name || n.user_id}
                         </span>
                       )}
                     </div>

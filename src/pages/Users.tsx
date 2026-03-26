@@ -26,7 +26,7 @@ export default function Users() {
       setLoading(true);
       setError(null);
       const { data, error } = await supabase
-        .from('profiles')
+        .from('users')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -43,7 +43,7 @@ export default function Users() {
       } else if (typeof err === 'object' && err !== null && 'message' in err) {
         message = (err as { message: string }).message;
       }
-      setError(`Failed to fetch users: ${message}. Make sure the 'profiles' table exists in your Supabase project.`);
+      setError(`Failed to fetch users: ${message}. Make sure the 'users' table exists in your Supabase project.`);
     } finally {
       setLoading(false);
     }
