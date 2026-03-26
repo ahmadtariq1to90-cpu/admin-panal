@@ -24,16 +24,26 @@ export default function Users() {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      setError(null);
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error fetching users:', error);
+        throw error;
+      }
       setUsers(data || []);
     } catch (err: unknown) {
       console.error('Error fetching users:', err);
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      let message = 'An unknown error occurred';
+      if (err instanceof Error) {
+        message = err.message;
+      } else if (typeof err === 'object' && err !== null && 'message' in err) {
+        message = (err as { message: string }).message;
+      }
+      setError(`Failed to fetch users: ${message}. Make sure the 'profiles' table exists in your Supabase project.`);
     } finally {
       setLoading(false);
     }
@@ -100,15 +110,16 @@ export default function Users() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">User Management</h1>
-          <p className="text-slate-500">Manage and monitor all platform users</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">User Management</h1>
+          <p className="text-slate-500 font-medium">Manage and monitor all platform users</p>
         </div>
         <div className="flex items-center gap-3">
           <button 
             onClick={fetchUsers}
-            className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 transition-colors flex items-center gap-2"
+            className="px-5 py-2.5 bg-white border border-slate-200 rounded-xl text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all font-bold flex items-center gap-2 shadow-sm active:scale-95"
           >
-            Refresh
+            <Loader2 className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh Data
           </button>
         </div>
       </div>

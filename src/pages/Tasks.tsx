@@ -25,16 +25,26 @@ export default function Tasks() {
   const fetchTasks = async () => {
     try {
       setLoading(true);
+      setError(null);
       const { data, error } = await supabase
         .from('tasks')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error fetching tasks:', error);
+        throw error;
+      }
       setTasks(data || []);
     } catch (err: unknown) {
       console.error('Error fetching tasks:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch tasks');
+      let message = 'Failed to fetch tasks';
+      if (err instanceof Error) {
+        message = err.message;
+      } else if (typeof err === 'object' && err !== null && 'message' in err) {
+        message = (err as { message: string }).message;
+      }
+      setError(`${message}. Make sure the 'tasks' table exists in your Supabase project.`);
     } finally {
       setLoading(false);
     }
@@ -78,15 +88,15 @@ export default function Tasks() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Task Management</h1>
-          <p className="text-slate-500">Create and manage platform tasks for users</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Task Management</h1>
+          <p className="text-slate-500 font-medium">Create and manage platform tasks for users</p>
         </div>
         <button 
           onClick={() => setIsAdding(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors flex items-center gap-2"
+          className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black hover:bg-blue-700 transition-all flex items-center gap-2 shadow-lg shadow-blue-200 active:scale-95"
         >
           <Plus className="w-5 h-5" />
-          Add Task
+          Create Task
         </button>
       </div>
 

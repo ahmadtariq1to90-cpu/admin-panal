@@ -27,6 +27,9 @@ export default function Withdrawals() {
   const fetchWithdrawals = async () => {
     try {
       setLoading(true);
+      setError(null);
+      
+      // Try fetching with join first
       const { data, error } = await supabase
         .from('withdrawals')
         .select(`
@@ -35,11 +38,28 @@ export default function Withdrawals() {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setWithdrawals(data || []);
+      if (error) {
+        console.warn('Join query failed, trying simple query:', error.message);
+        // Fallback to simple query if join fails (e.g. missing relationship)
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('withdrawals')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (simpleError) throw simpleError;
+        setWithdrawals(simpleData || []);
+      } else {
+        setWithdrawals(data || []);
+      }
     } catch (err: unknown) {
       console.error('Error fetching withdrawals:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch withdrawals');
+      let message = 'Failed to fetch withdrawals';
+      if (err instanceof Error) {
+        message = err.message;
+      } else if (typeof err === 'object' && err !== null && 'message' in err) {
+        message = (err as { message: string }).message;
+      }
+      setError(`${message}. Make sure the 'withdrawals' table exists in your Supabase project.`);
     } finally {
       setLoading(false);
     }
@@ -63,8 +83,8 @@ export default function Withdrawals() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Withdrawals</h1>
-        <p className="text-slate-500">Manage and process user withdrawal requests</p>
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Withdrawals</h1>
+        <p className="text-slate-500 font-medium">Manage and process user withdrawal requests</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

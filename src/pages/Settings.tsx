@@ -74,8 +74,8 @@ export default function Settings() {
   return (
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Settings</h1>
-        <p className="text-slate-500">Configure your administrative tools and API keys</p>
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Settings</h1>
+        <p className="text-slate-500 font-medium">Configure your administrative tools and API keys</p>
       </div>
 
       <motion.div 

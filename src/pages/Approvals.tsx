@@ -27,6 +27,9 @@ export default function Approvals() {
   const fetchApprovals = async () => {
     try {
       setLoading(true);
+      setError(null);
+      
+      // Try fetching with join first
       const { data, error } = await supabase
         .from('approvals')
         .select(`
@@ -35,11 +38,28 @@ export default function Approvals() {
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setApprovals(data || []);
+      if (error) {
+        console.warn('Join query failed, trying simple query:', error.message);
+        // Fallback to simple query if join fails (e.g. missing relationship)
+        const { data: simpleData, error: simpleError } = await supabase
+          .from('approvals')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (simpleError) throw simpleError;
+        setApprovals(simpleData || []);
+      } else {
+        setApprovals(data || []);
+      }
     } catch (err: unknown) {
       console.error('Error fetching approvals:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch approvals');
+      let message = 'Failed to fetch approvals';
+      if (err instanceof Error) {
+        message = err.message;
+      } else if (typeof err === 'object' && err !== null && 'message' in err) {
+        message = (err as { message: string }).message;
+      }
+      setError(`${message}. Make sure the 'approvals' table exists in your Supabase project.`);
     } finally {
       setLoading(false);
     }
@@ -63,8 +83,8 @@ export default function Approvals() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">Approvals</h1>
-        <p className="text-slate-500">Review and manage pending requests</p>
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Approvals</h1>
+        <p className="text-slate-500 font-medium">Review and manage pending requests</p>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
