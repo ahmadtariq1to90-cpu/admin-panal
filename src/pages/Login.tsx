@@ -23,7 +23,15 @@ export default function Login() {
       if (error) throw error;
     } catch (err: unknown) {
       console.error('Login error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to login. Please check your credentials.');
+      let message = 'Failed to login. Please check your credentials.';
+      if (err instanceof Error) {
+        if (err.message.includes('Failed to fetch')) {
+          message = 'Network error: Failed to connect to Supabase. Please check your internet connection or if the Supabase project is active.';
+        } else {
+          message = err.message;
+        }
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }

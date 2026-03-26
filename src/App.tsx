@@ -5,11 +5,11 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Layout from './components/layout/Layout';
-const Approvals = () => <div className="bg-white p-6 rounded-2xl border border-slate-200">Approvals Page</div>;
-const Withdrawals = () => <div className="bg-white p-6 rounded-2xl border border-slate-200">Withdrawals Page</div>;
-const Tasks = () => <div className="bg-white p-6 rounded-2xl border border-slate-200">Tasks Page</div>;
-const Notifications = () => <div className="bg-white p-6 rounded-2xl border border-slate-200">Notifications Page</div>;
-const Settings = () => <div className="bg-white p-6 rounded-2xl border border-slate-200">Settings Page</div>;
+import Approvals from './pages/Approvals';
+import Withdrawals from './pages/Withdrawals';
+import Tasks from './pages/Tasks';
+import Notifications from './pages/Notifications';
+import Settings from './pages/Settings';
 
 function PrivateRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();

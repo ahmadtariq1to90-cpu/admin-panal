@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Search, Filter, MoreVertical, Trash2, UserCheck, UserX, Loader2, AlertCircle } from 'lucide-react';
 
@@ -43,6 +43,40 @@ export default function Users() {
     if (!confirm('Are you sure you want to delete this user?')) return;
     
     try {
+      // 1. Try to get the service role key from settings
+      const { data: settingsData } = await supabase
+        .from('settings')
+        .select('service_role_key')
+        .eq('id', 'global')
+        .single();
+
+      const serviceRoleKey = settingsData?.service_role_key;
+
+      if (!serviceRoleKey) {
+        alert('Supabase Service Role Key not found in Settings. User will only be deleted from database, not Auth. They will not be able to re-register with the same email.');
+      } else {
+        // 2. If key exists, try to delete from Auth using the Admin API
+        // We need to create a temporary admin client
+        const { createClient } = await import('@supabase/supabase-js');
+        const adminClient = createClient(
+          import.meta.env.VITE_SUPABASE_URL || 'https://jzafnhhavugcelomeayw.supabase.co',
+          serviceRoleKey,
+          {
+            auth: {
+              autoRefreshToken: false,
+              persistSession: false
+            }
+          }
+        );
+
+        const { error: authError } = await adminClient.auth.admin.deleteUser(id);
+        if (authError) {
+          console.error('Auth deletion error:', authError);
+          alert('User deleted from database only. Auth deletion failed or was skipped: ' + authError.message);
+        }
+      }
+
+      // 3. Delete from profiles table
       const { error } = await supabase
         .from('profiles')
         .delete()
@@ -50,6 +84,7 @@ export default function Users() {
 
       if (error) throw error;
       setUsers(users.filter(u => u.id !== id));
+      alert('User deleted successfully from both database and authentication.');
     } catch (err: unknown) {
       console.error('Error deleting user:', err);
       alert('Failed to delete user: ' + (err instanceof Error ? err.message : 'Unknown error'));
