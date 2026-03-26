@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Save, Key, Shield, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion } from 'framer-motion';
 
 export default function Settings() {
   const [serviceRoleKey, setServiceRoleKey] = useState('');
