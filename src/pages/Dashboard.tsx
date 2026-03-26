@@ -72,7 +72,7 @@ export default function Dashboard() {
             console.warn(`Error fetching sum for ${table}:`, error.message);
             return 0;
           }
-          return data?.reduce((acc, curr) => acc + (curr[column] || 0), 0) || 0;
+          return (data as unknown as Record<string, unknown>[])?.reduce((acc: number, curr: Record<string, unknown>) => acc + (Number(curr[column]) || 0), 0) || 0;
         } catch (e) {
           console.error(`Unexpected error for ${table}:`, e);
           return 0;

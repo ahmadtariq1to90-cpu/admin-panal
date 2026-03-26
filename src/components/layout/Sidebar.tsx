@@ -67,11 +67,15 @@ export default function Sidebar() {
                   : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
               )}
             >
-              <item.icon className={cn(
-                "w-5 h-5 transition-transform group-hover:scale-110",
-                isActive ? "text-white" : "text-slate-400 group-hover:text-blue-600"
-              )} />
-              {item.label}
+              {({ isActive }) => (
+                <>
+                  <item.icon className={cn(
+                    "w-5 h-5 transition-transform group-hover:scale-110",
+                    isActive ? "text-white" : "text-slate-400 group-hover:text-blue-600"
+                  )} />
+                  {item.label}
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
