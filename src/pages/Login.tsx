@@ -25,14 +25,31 @@ export default function Login() {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
-      
-      // Navigation will be handled by useEffect above when auth state changes
+      if (authError) throw authError;
+
+      if (data.user) {
+        // Verify admin role in the users table
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('role')
+          .eq('id', data.user.id)
+          .single();
+
+        if (userError || userData?.role !== 'admin') {
+          // Sign out immediately if not an admin
+          await supabase.auth.signOut();
+          throw new Error('Access denied, admin only');
+        }
+
+        // Set login timestamp for 24h session tracking
+        localStorage.setItem('admin_login_timestamp', Date.now().toString());
+        navigate('/');
+      }
     } catch (err: unknown) {
       console.error('Login error:', err);
       let message = 'Failed to login. Please check your credentials.';
