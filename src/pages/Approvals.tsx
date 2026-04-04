@@ -9,7 +9,7 @@ interface Approval {
   status: 'pending' | 'approved' | 'rejected';
   details: string;
   created_at: string;
-  users?: {
+  profiles?: {
     full_name: string;
     email: string;
   };
@@ -27,39 +27,19 @@ export default function Approvals() {
   const fetchApprovals = async () => {
     try {
       setLoading(true);
-      setError(null);
-      
-      // Try fetching with join first
       const { data, error } = await supabase
-        .from('task_submissions')
+        .from('approvals')
         .select(`
           *,
-          users:user_id (full_name, email)
+          profiles:user_id (full_name, email)
         `)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.warn('Join query failed, trying simple query:', error.message);
-        // Fallback to simple query if join fails (e.g. missing relationship)
-        const { data: simpleData, error: simpleError } = await supabase
-          .from('task_submissions')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (simpleError) throw simpleError;
-        setApprovals(simpleData || []);
-      } else {
-        setApprovals(data || []);
-      }
+      if (error) throw error;
+      setApprovals(data || []);
     } catch (err: unknown) {
       console.error('Error fetching approvals:', err);
-      let message = 'Failed to fetch approvals';
-      if (err instanceof Error) {
-        message = err.message;
-      } else if (typeof err === 'object' && err !== null && 'message' in err) {
-        message = (err as { message: string }).message;
-      }
-      setError(`${message}. Make sure the 'task_submissions' table exists in your Supabase project.`);
+      setError(err instanceof Error ? err.message : 'Failed to fetch approvals');
     } finally {
       setLoading(false);
     }
@@ -83,8 +63,8 @@ export default function Approvals() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Approvals</h1>
-        <p className="text-slate-500 font-medium">Review and manage pending requests</p>
+        <h1 className="text-2xl font-bold text-slate-900">Approvals</h1>
+        <p className="text-slate-500">Review and manage pending requests</p>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -126,8 +106,8 @@ export default function Approvals() {
                   <tr key={approval.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                       <div>
-                        <p className="text-sm font-bold text-slate-900">{approval.users?.full_name || 'Unknown'}</p>
-                        <p className="text-xs text-slate-500">{approval.users?.email || 'No email'}</p>
+                        <p className="text-sm font-bold text-slate-900">{approval.profiles?.full_name || 'Unknown'}</p>
+                        <p className="text-xs text-slate-500">{approval.profiles?.email || 'No email'}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">

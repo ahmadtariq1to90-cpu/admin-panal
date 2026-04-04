@@ -9,7 +9,7 @@ interface Withdrawal {
   status: 'pending' | 'completed' | 'failed';
   payment_method: string;
   created_at: string;
-  users?: {
+  profiles?: {
     full_name: string;
     email: string;
   };
@@ -27,39 +27,19 @@ export default function Withdrawals() {
   const fetchWithdrawals = async () => {
     try {
       setLoading(true);
-      setError(null);
-      
-      // Try fetching with join first
       const { data, error } = await supabase
-        .from('withdraw_requests')
+        .from('withdrawals')
         .select(`
           *,
-          users:user_id (full_name, email)
+          profiles:user_id (full_name, email)
         `)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.warn('Join query failed, trying simple query:', error.message);
-        // Fallback to simple query if join fails (e.g. missing relationship)
-        const { data: simpleData, error: simpleError } = await supabase
-          .from('withdraw_requests')
-          .select('*')
-          .order('created_at', { ascending: false });
-        
-        if (simpleError) throw simpleError;
-        setWithdrawals(simpleData || []);
-      } else {
-        setWithdrawals(data || []);
-      }
+      if (error) throw error;
+      setWithdrawals(data || []);
     } catch (err: unknown) {
       console.error('Error fetching withdrawals:', err);
-      let message = 'Failed to fetch withdrawals';
-      if (err instanceof Error) {
-        message = err.message;
-      } else if (typeof err === 'object' && err !== null && 'message' in err) {
-        message = (err as { message: string }).message;
-      }
-      setError(`${message}. Make sure the 'withdraw_requests' table exists in your Supabase project.`);
+      setError(err instanceof Error ? err.message : 'Failed to fetch withdrawals');
     } finally {
       setLoading(false);
     }
@@ -83,8 +63,8 @@ export default function Withdrawals() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Withdrawals</h1>
-        <p className="text-slate-500 font-medium">Manage and process user withdrawal requests</p>
+        <h1 className="text-2xl font-bold text-slate-900">Withdrawals</h1>
+        <p className="text-slate-500">Manage and process user withdrawal requests</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -140,8 +120,8 @@ export default function Withdrawals() {
                   <tr key={withdrawal.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                       <div>
-                        <p className="text-sm font-bold text-slate-900">{withdrawal.users?.full_name || 'Unknown'}</p>
-                        <p className="text-xs text-slate-500">{withdrawal.users?.email || 'No email'}</p>
+                        <p className="text-sm font-bold text-slate-900">{withdrawal.profiles?.full_name || 'Unknown'}</p>
+                        <p className="text-xs text-slate-500">{withdrawal.profiles?.email || 'No email'}</p>
                       </div>
                     </td>
                     <td className="px-6 py-4">

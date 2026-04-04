@@ -9,7 +9,7 @@ interface Notification {
   message: string;
   user_id: string | null; // null means broadcast to all
   created_at: string;
-  users?: {
+  profiles?: {
     full_name: string;
   };
 }
@@ -28,29 +28,19 @@ export default function Notifications() {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
-      setError(null);
       const { data, error } = await supabase
         .from('notifications')
         .select(`
           *,
-          users:user_id (full_name)
+          profiles:user_id (full_name)
         `)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Supabase error fetching notifications:', error);
-        throw error;
-      }
+      if (error) throw error;
       setNotifications(data || []);
     } catch (err: unknown) {
       console.error('Error fetching notifications:', err);
-      let message = 'Failed to fetch notifications';
-      if (err instanceof Error) {
-        message = err.message;
-      } else if (typeof err === 'object' && err !== null && 'message' in err) {
-        message = (err as { message: string }).message;
-      }
-      setError(`${message}. Make sure the 'notifications' table exists in your Supabase project.`);
+      setError(err instanceof Error ? err.message : 'Failed to fetch notifications');
     } finally {
       setLoading(false);
     }
@@ -103,8 +93,8 @@ export default function Notifications() {
     <div className="max-w-5xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Notifications</h1>
-          <p className="text-slate-500 font-medium">Send alerts and updates to your users</p>
+          <h1 className="text-2xl font-bold text-slate-900">Notifications</h1>
+          <p className="text-slate-500">Send alerts and updates to your users</p>
         </div>
       </div>
 
@@ -207,7 +197,7 @@ export default function Notifications() {
                       {n.user_id && (
                         <span className="flex items-center gap-1">
                           <User className="w-3 h-3" />
-                          To: {n.users?.full_name || n.user_id}
+                          To: {n.profiles?.full_name || n.user_id}
                         </span>
                       )}
                     </div>

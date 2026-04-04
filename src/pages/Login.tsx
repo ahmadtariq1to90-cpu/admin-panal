@@ -1,7 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
 import { LogIn, Mail, Lock, AlertCircle, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
@@ -10,14 +8,6 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,31 +15,12 @@ export default function Login() {
     setError(null);
 
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (authError) throw authError;
-
-      if (data.user) {
-        // Verify admin role in the users table
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', data.user.id)
-          .single();
-
-        if (userError || userData?.role !== 'admin') {
-          // Sign out immediately if not an admin
-          await supabase.auth.signOut();
-          throw new Error('Access denied, admin only');
-        }
-
-        // Set login timestamp for 24h session tracking
-        localStorage.setItem('admin_login_timestamp', Date.now().toString());
-        navigate('/');
-      }
+      if (error) throw error;
     } catch (err: unknown) {
       console.error('Login error:', err);
       let message = 'Failed to login. Please check your credentials.';
